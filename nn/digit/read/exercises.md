@@ -1,4 +1,4 @@
-EX 1.1
+# EX 1.1
 1. 0 if w * x + b <= 0 
 2. 1 if w * x + b >  0
 
@@ -45,7 +45,7 @@ special case: `w * x + b = 0`
 
 0.5 != 0, so it fails. This can also be illustrated with `step function` vs sigmoid `logistic function`.
 
-EX 2.1
+# EX 2.1
 
 An old output layer can activate several neurons in the new output layer.
 
@@ -65,3 +65,22 @@ The resulting output:
 Notice that the columns of above layout can be thought of as each neuron in the new output layer. In the reverse order, first column is the last neuron and the last column is the first neuron. The weight is either 0 or 1. The bias is 0 because we only care about the activation of the neuron.
 
 For example, if we get `5` as an input from the previous layer, first and third neuron will be activated which in turn represents 5 (0101) in binary form.
+
+# EX 3.1
+
+It can be proved that the choice of Δv which minimizes ∇C⋅Δv is Δv=−η∇C
+, where η= ϵ/∥∇C∥ is determined by the size constraint ∥Δv∥=ϵ
+
+∇C⋅Δv is Δv=−η∇C
+∥Δv∥ = ϵ => small fixed size move
+
+# EX 3.2
+
+If we are dealing with a cost function with a single variable, the negative derivative of a function is a direction towards finding the minimum of the function. 
+
+In geometric interpretation, we will have a single line describing our function. Choose a random point and start to move towards the minimum of the function by a fixed step.
+
+
+ 
+
+which means that the rate of change in cost function is determined by the rate of change in the variable.

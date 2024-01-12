@@ -42,8 +42,8 @@ Our `quadratic cost function`, also known as `mean squared error`::
 w = weights
 b = biases
 n = number of training inputs
-x = input
-a = vector of outputs from the network when x is input
+x = input (training data)
+a = vector of outputs from the network when x is input. Depends on x, b and w.
 
 As cost function approaches 0, the network is doing a good job. However, if the cost function is a large number, the large number of inputs are farther away from y(x), our desired output.
 
@@ -56,21 +56,25 @@ ex.
 Now, let's break down this form:
 
 Δv ≡ (Δv1,Δv2)T
-where Δv is a vector of changes.
+where Δv is a `vector of changes`.
 
 ∇C ≡ (∂C/∂v1,∂C/∂v2)T
-where ∇C is a gradient vector
+where ∇C is a `gradient vector`
 
 Then we can rewrite the equation as:
 ΔC ≈ ∇C * Δv
 
-∇C relates the change in v to changes in C
+∇C relates `the change in v to changes in C`
 
-How do we choose the tiny difference in v so as to make tiny change in C negative?
+We're going to find a way of choosing Δv1 and Δv2 so as to make ΔC negative
 
 1. Δv = (−) * η * ∇C
 2. ΔC ≈ −η∇C * ∇C = −η * ∥∇C∥2
+3. v → v′ = v − η∇C
 
-η is the learning rate
+η is the learning rate.
+
+Third euqation basically says to move from v to v' in the `direction of the negative gradient` times the `learning rate`. In fact, this is the `gradient descent algorithm`.
 
 Now, ΔC will always decrease
+
