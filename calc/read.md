@@ -48,4 +48,58 @@ left d right right d left => think of it area of bot and side rectecgle
 
 d / dx \* g(h(x)) = dg / dh \* (h(x)) \* dh / dx \* (x)
 
-###
+### Exponential Derivative
+
+M(t) = 2 \*\* t
+
+dM / dt => tiny change in mass over the tiny change in time
+= (d**(t+dt) - 2**t) / dt\
+= (2\*\*t \* 2\*\*dt - 2\*\*t) / dt\
+= 2\*\*t((2\*\*dt-1) / dt)
+
+as dt -> inf, `((2\*\*dt-1) / dt)` this here becomes constant
+, which the constant value is proportion to itself.
+
+ex. 2\*\*t(0,6931472...) => `itself * constant`
+
+All other derivatives have constant value proportion to itself. HOWEVER, `e` has constant equals to `1` which means that the derivative of `e**t` is `e**t`.
+
+THen, we can start asking:
+
+2 = e \*\* ln(2) -> `e to the what equals 2?`
+
+2\*\*t = e\*\*ln(2)t
+takes derivative,
+ln(2)2\*\*t = ln(2)e\*\*ln(2)t
+
+derivative of e\*\*ct = ce\*\*ct
+
+Super important to note:
+
+All sorts of natural phenomena involve some rate of change that's proportional to the thing that's changing.
+
+If some variable's rate of change is proportion to itself, the function describing that variable over time is going to look like some kind of exponential
+
+e\*\*ct where c is the proportionality constant
+
+# Implicit Differentiation
+
+`Implicit` curve is the set of all points (x,y) that satisfy some property written in terms of the two variables x and y.
+
+x\*\*2 + y\*\*2 = 5\*\*2
+
+2x \* dx + 2y \* dy = 0 `implicit differentiation`, but why?
+
+Think first related rates,
+
+x(t)\*\*2 + y(t)\*\*2 = 5\*\*2, where the left equation is the function of time that happens to be constant becuase the value 5\*\*2 does not change while the time passes
+
+2x(t)dx/dt + 2y(t)dy/dt = 0
+
+,but our circle relationship equation does not have any `t` that ties two variables
+
+dS = 2x \* dx + 2y \* dy
+
+what it means to take a derivative of this function is that some tiny change in `x` and `y`to the change in `S`.
+
+Important: whatever tiny step with dx, dy, if it's going to keep us on the curve, the values of both the left-side and right-hand side must change by the same amount
