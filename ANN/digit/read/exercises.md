@@ -95,8 +95,10 @@ Compare with stochastic gradient descent, the on-line learning can be more accur
 
 # EX 4.1
 
-w jk
+w jk, k -> j 
 
-a′ = σ( wa + b) =   σ(∑k(wk * ak) + b)
+basically, think of j as row and k as column.
 
-σ(z) ≡ 1 / (1 + exp(−z)) = 1 / (1 + exp(−∑k(wk * ak) + b))
+a′ = σ( wa + b) =   σ(∑k(wjk * ajk) + b)
+
+σ(z) ≡ 1 / (1 + exp(−z)) = 1 / (1 + exp(−∑k(wjk * ajk) + b))
