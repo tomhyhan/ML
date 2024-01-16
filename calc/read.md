@@ -103,3 +103,45 @@ dS = 2x \* dx + 2y \* dy
 what it means to take a derivative of this function is that some tiny change in `x` and `y`to the change in `S`.
 
 Important: whatever tiny step with dx, dy, if it's going to keep us on the curve, the values of both the left-side and right-hand side must change by the same amount
+
+# LiMiTs
+
+Formal definition of derivative:
+
+df/dx = lim[h -> 0] (f(2 + h) - f(2)) / h
+
+Limits actually let us `avoid` talking about infinitely small change, and instead focus on `concrete finite tiny change`.
+
+## Epsilon delta
+
+The distance away from limiting point is called `epsilon`
+The distance away from inputs is called `delta`
+
+For the limit to exist, we will always be able to find a range of inputs around our limiting input, some distance delta around 0, so that any input within a distance delta of 0 corresponds to an output within distance epsilon of 12.
+
+## L'Hôpital's rule
+
+It gives the precise value for the limit whenever we come across the expresion that devides by 0.
+
+# Integral (Integration)
+
+Integral[0-8] v(t) dt
+
+As dt get smaller, our integral function represents more of the reality.
+dt represents two things.
+
+1. a factor in each quantity (width) we are adding up
+2. spacing between each sampled time step
+
+s(t) => distance vs time function which is also distance in velocity vs time function
+
+ds = dT \* v(T)
+ds / dT = v(T) `super general`
+
+**Fundamental theorem of calculus**
+
+integral[a->b] f(x) dx = F(b) - F(a)
+
+dF/dx \* (x) = f(x) `antiderivative of f(x)`
+
+Anytime we want to integrate some function - and remember we think of as adding up the values f(x)dx for inputs in a certain range then asking what that sum approaches as dx approachese 0 - the first step to evaluating that integral is to find an antiderivative, some other function, `capital F(x)`, whose derivative is the ting inside the integral (`area`). Then the ingetral equals this anti derivative evaluated at the top bound, minus its value at the bottom bound.
