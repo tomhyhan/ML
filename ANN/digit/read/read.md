@@ -78,3 +78,13 @@ Third euqation basically says to move from v to v' in the `direction of the nega
 
 Now, ΔC will always decrease
 
+# backPropagation
+
+a lj = σ( ∑k wljk al −1k +blj )
+
+l -> nth layer
+j -> nth neuron in the l layer
+k -> nth neuron in the l-1 layer
+a -> activation
+
+al=σ(wlal−1+bl)
