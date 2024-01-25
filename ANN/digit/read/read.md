@@ -88,3 +88,5 @@ k -> nth neuron in the l-1 layer
 a -> activation
 
 al=σ(wlal−1+bl)
+
+z(l) ≡ w(l)*a(l−1)+b(l)
