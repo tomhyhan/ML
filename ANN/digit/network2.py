@@ -27,34 +27,29 @@ class Network:
         4. output: compute the gradient of the cost function 
         """
         # 1
+        print("shape", root_activations.shape)
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         activation = root_activations
         activations = [activation]
         zs = []
         for w, b in zip(self.weights, self.biases):
+            print(np.dot(w, activation))
+            print(np.dot(w, activation).shape)
+            print(np.transpose(np.dot(w, activation), (1,0,2)))
             z = np.dot(w, activation) + b
-            print("z",z.shape)
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
         # 2
         delta = (activations[-1] - validations) * sigmoid_prime(zs[-1])
         nabla_b[-1] = delta
-        # print(delta.shape)
-        # print("a", activations[-2].transpose().shape)
-        # print(np.dot(delta, activations[-2].transpose()).shape)
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
-        # print("z", z)
         for layer in range(2, self.num_layers):
             z = zs[-layer]
             sp = sigmoid_prime(z)
             # print(delta)
-            print("nw", self.weights[-layer+1].shape)
-            print("cw", self.weights[-layer+1].transpose().shape)
-            print("ds", delta.shape)
             delta = np.dot(self.weights[-layer+1].transpose(), delta) * sp
-            print("delta", delta)
             nabla_b[-layer] = delta
             nabla_w[-layer] = np.dot(delta, activations[-layer-1].transpose())
         return (nabla_w, nabla_b)  
@@ -68,12 +63,14 @@ class Network:
         """
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        for root_activations, validations in mini_batch:
-            delta_nabla_w, delta_nabla_b = self.backprop(
-                root_activations, validations)
-            nabla_b = [b + dnb for b, dnb in zip(nabla_b, delta_nabla_b)]
-            nabla_w = [w + dnw for w, dnw in zip(nabla_w, delta_nabla_w)]
-            # break
+        root_activations = np.array([image for image, _ in mini_batch])
+        validations = np.array([validation for _, validation in mini_batch])
+        # for root_activations, validations in mini_batch:
+        nabla_b, nabla_w = self.backprop(
+            root_activations, validations)
+        # nabla_b = [b + dnb for b, dnb in zip(nabla_b, delta_nabla_b)]
+        # nabla_w = [w + dnw for w, dnw in zip(nabla_w, delta_nabla_w)]
+
         # apply gradient descent nabla C = (w, b)T
         # change in v = - learning rate * nabla
         # print("weight", self.weights)
