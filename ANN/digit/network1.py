@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import mnist_loader
-
+from utils import time_checker
 
 class Network:
 
@@ -34,7 +34,6 @@ class Network:
         zs = []
         for w, b in zip(self.weights, self.biases):
             z = np.dot(w, activation) + b
-            print("z",z.shape)
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
@@ -50,11 +49,11 @@ class Network:
             z = zs[-layer]
             sp = sigmoid_prime(z)
             # print(delta)
-            print("nw", self.weights[-layer+1].shape)
-            print("cw", self.weights[-layer+1].transpose().shape)
-            print("ds", delta.shape)
+            # print("nw", self.weights[-layer+1].shape)
+            # print("cw", self.weights[-layer+1].transpose().shape)
+            # print("ds", delta.shape)
             delta = np.dot(self.weights[-layer+1].transpose(), delta) * sp
-            print("delta", delta)
+            # print("delta", delta)
             nabla_b[-layer] = delta
             nabla_w[-layer] = np.dot(delta, activations[-layer-1].transpose())
         return (nabla_w, nabla_b)  
@@ -80,6 +79,7 @@ class Network:
         self.weights = [w-(learning_rate/len(mini_batch))*nw for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b-(learning_rate/len(mini_batch))* nb for b, nb in zip(self.biases, nabla_b)]
 
+    @time_checker
     def SGD(self, training_data, epochs, mini_batch_size, learning_rate, test_data=None):
         """
         stochastic gradient descent
@@ -141,9 +141,9 @@ def sigmoid_prime(z):
 
 
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-sample = list(test_data)[0]
+# sample = list(test_data)[0]
 net = Network([784, 5, 10])
-net.SGD(training_data, 1, 10, 3.0, test_data=test_data)
+net.SGD(training_data, 3, 10, 3.0, test_data=test_data)
 # print("predict:", net.evaluate_single(sample[0]))
 # print("actual:", sample[1])
 # print("len:", len(sample[0]))

@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import mnist_loader
-
+from utils import time_checker
 
 class Network:
 
@@ -11,13 +11,13 @@ class Network:
         - start with vector of random weights where row is the size of current layer and column is the size of the previous layer
         - start with vector of random biases where row is the size of current layer and column is a single -(Threshold)
         """
+        # 784 5 10
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.weights = [np.random.randn(layer_j, layer_k)
-                        for layer_k, layer_j in zip(sizes[:-1], sizes[1:])]
-        self.biases = [np.random.randn(layer, 1) for layer in sizes[1:]]
+        self.biases = [np.random.randn(b, 1) for b in sizes[1:]] 
+        self.weights = [np.random.randn(wj, wk) for wk, wj in zip(sizes[:-1], sizes[1:])] 
 
-    def backprop(self, root_activations, validations):
+    def backprop(self, images, validations):
         """
         compute gradient descent for each neurons in the network
         plan
@@ -27,56 +27,104 @@ class Network:
         4. output: compute the gradient of the cost function 
         """
         # 1
-        print("shape", root_activations.shape)
-        nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        activation = root_activations
-        activations = [activation]
+        nabla_b = [np.zeros(b.shape) for b in self.biases]
+
         zs = []
+        # print("images", images.shape)
+        activation = images
+        activations = [activation]
+        
         for w, b in zip(self.weights, self.biases):
-            print(np.dot(w, activation))
-            print(np.dot(w, activation).shape)
-            print(np.transpose(np.dot(w, activation), (1,0,2)))
-            z = np.dot(w, activation) + b
+            # apply each activation to weights, and transpose
+            z = np.transpose(np.dot(w, activation), (1,0,2)) + b
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
-        # 2
-        delta = (activations[-1] - validations) * sigmoid_prime(zs[-1])
-        nabla_b[-1] = delta
-        nabla_w[-1] = np.dot(delta, activations[-2].transpose())
-        for layer in range(2, self.num_layers):
-            z = zs[-layer]
-            sp = sigmoid_prime(z)
-            # print(delta)
-            delta = np.dot(self.weights[-layer+1].transpose(), delta) * sp
-            nabla_b[-layer] = delta
-            nabla_w[-layer] = np.dot(delta, activations[-layer-1].transpose())
-        return (nabla_w, nabla_b)  
 
-    def update_mini_batch(self, mini_batch, learning_rate):
+        delta = (activations[-1] - validations) * sigmoid_prime(zs[-1]) 
+        # simply sum of all delta
+        nabla_b[-1] = np.sum(delta, axis = 0)
+        # print("w", np.dot(delta, activations[-2].transpose()))
+        # print(delta.shape)
+        # print(np.transpose(activations[-2], (0,2,1)).shape)
+        # print(np.dot(delta[0], activations[-2][0].transpose()))
+        # print()
+        # print(np.matmul(delta, np.transpose(activations[-2], (0,2,1))))
+        # nabla_w[-1] = np.dot(delta, np.transpose(activations[-2], (0,2,1)))
+        nabla_w[-1] = np.sum(np.matmul(delta, np.transpose(activations[-2], (0,2,1))), axis=0)
+        # 2
+        for layer in range(2, self.num_layers):
+            z = zs[-layer] 
+            sp = sigmoid_prime(z)
+            delta = np.transpose(np.dot(self.weights[-layer+1].transpose(), delta), (1,0,2)) * sp
+            nabla_b[-layer] = np.sum(delta, axis = 0)
+            nabla_w[-layer] = np.sum(np.matmul(delta, np.transpose(activations[-layer-1], (0,2,1))), axis=0)
+
+        return nabla_b, nabla_w
+    
+    # def backprop(self, starting_a, validations):
+    #     """
+    #     compute gradient descent for each neurons in the network
+    #     plan
+    #     1. feedforward: compute z and activation for each layer
+    #     2. output error: compute delta for the last layer
+    #     3. backpropagate the error: compute the previous layer's delta using the last layer delta
+    #     4. output: compute the gradient of the cost function 
+    #     """
+    #     # 1
+    #     nabla_w = [np.zeros(w.shape) for w in self.weights]
+    #     nabla_b = [np.zeros(b.shape) for b in self.biases]
+
+    #     zs = []
+    #     activation = starting_a
+    #     activations = [activation]
+        
+    #     for w, b in zip(self.weights, self.biases):
+    #         z = np.dot(w, activation) + b
+    #         zs.append(z)
+    #         activation = sigmoid(z)
+    #         activations.append(activation)
+
+    #     delta = (activations[-1] - validations) * sigmoid_prime(zs[-1]) 
+    #     nabla_b[-1] = delta
+    #     nabla_w[-1] = np.dot(delta, activations[-2].transpose())
+    #     # 2
+    #     for layer in range(2, self.num_layers):
+    #         z = zs[-layer] 
+    #         sp = sigmoid_prime(z)
+    #         delta = np.dot(self.weights[-layer+1].transpose(), delta) * sp
+    #         nabla_b[-layer] = delta
+    #         nabla_w[-layer] = np.dot(delta, activations[-layer-1].transpose())
+
+    #     return nabla_b, nabla_w
+
+    def update_mini_batch(self, mini_batchs, learning_rate):
         """
         use mini batch to compute gradient descent for weight and biases
         1. init nabla biases and nsbla weights
         2. iterate through each mini_batch and apply the back propagation algorithm. This will give us the sum of all the delta nabla weight and biases
         3. Use the result from backpropagation to perform gradient descent algorithm to adjust the weight and biases from each layer.
         """
-        nabla_b = [np.zeros(b.shape) for b in self.biases]
-        nabla_w = [np.zeros(w.shape) for w in self.weights]
-        root_activations = np.array([image for image, _ in mini_batch])
-        validations = np.array([validation for _, validation in mini_batch])
-        # for root_activations, validations in mini_batch:
-        nabla_b, nabla_w = self.backprop(
-            root_activations, validations)
-        # nabla_b = [b + dnb for b, dnb in zip(nabla_b, delta_nabla_b)]
-        # nabla_w = [w + dnw for w, dnw in zip(nabla_w, delta_nabla_w)]
+        # nabla_b = [np.zeros(b.shape) for b in self.biases]
+        # nabla_w = [np.zeros(w.shape) for w in self.weights]
 
+        X = np.array([x for x, _ in mini_batchs])
+        Y = np.array([y for _, y in mini_batchs])
+        nabla_b, nabla_w = self.backprop(X, Y)
+
+        # for starting_a, validations in mini_batchs:
+        #     delta_nabla_b, delta_nabla_w = self.backprop(starting_a, validations)
+        #     nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+        #     nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+        
+        
         # apply gradient descent nabla C = (w, b)T
         # change in v = - learning rate * nabla
-        # print("weight", self.weights)
-        self.weights = [w-(learning_rate/len(mini_batch))*nw for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b-(learning_rate/len(mini_batch))* nb for b, nb in zip(self.biases, nabla_b)]
-
+        self.weights = [w - (learning_rate / len(mini_batchs)) * nw for w, nw in zip(self.weights, nabla_w)]
+        self.biases = [b - (learning_rate / len(mini_batchs)) * nb  for b, nb in zip(self.biases, nabla_b)]
+    
+    @time_checker
     def SGD(self, training_data, epochs, mini_batch_size, learning_rate, test_data=None):
         """
         stochastic gradient descent
@@ -89,33 +137,27 @@ class Network:
         4. use mini_batch to update the weight and biases
         5. if there is test data, evaluate the test data against current trained result
         """
-
         training_data = list(training_data)
-        training_data_length = len(training_data)
+        training_data_len = len(training_data)
 
         if test_data:
             test_data = list(test_data)
-            test_data_length = len(test_data)
+            test_data_len = len(test_data)
 
         for epoch in range(epochs):
             random.shuffle(training_data)
-            mini_batches = [training_data[k:k + mini_batch_size]
-                            for k in range(0, training_data_length, mini_batch_size)]
-            for mini_batch in mini_batches:
+            mini_batchs =  [training_data[k:k+mini_batch_size] for k in range(0, training_data_len, mini_batch_size)]
+            for mini_batch in mini_batchs:
                 self.update_mini_batch(mini_batch, learning_rate)
-                # break
             if test_data:
-                print(f"Epoch {epoch} :{self.evaluate(test_data)} / {test_data_length}")
-                pass
+                print(f"{epoch} : {self.evaluate(test_data)} {test_data_len}")
             else:
-                print(f"Epoch: {epoch} complete!")
+                print(f"{epoch} complete")
+        pass
 
     def feedforward(self, activations):
-        for weights, bias in zip(self.weights, self.biases):
-            # print("ff")
-            # print(weights.shape, activations.shape)
-            activations = sigmoid(np.dot(weights, activations) + bias)
-            # print("a", activations.shape)
+        for w, b in zip(self.weights, self.biases):
+            activations = sigmoid(np.dot(w,activations) + b)
         return activations
 
     def evaluate(self, test_data):
@@ -123,11 +165,10 @@ class Network:
         check if the network correctly outputs the matching result. 
         Use sigmoid squash function with weights, activations and bias to predict correct Number from the network 
         """
-        testing_result = [(np.argmax(self.feedforward(image)), valids) for (image, valids) in test_data]
-        return sum(int(predict == output) for (predict, output) in testing_result)
-
+        results = [(np.argmax(self.feedforward(test_image)), real) for test_image, real in test_data ]
+        return sum([int(predict == real)  for predict, real in results])
+        
     def evaluate_single(self, image):
-
         return np.argmax(self.feedforward(image))
 
 def sigmoid(z):
@@ -138,17 +179,13 @@ def sigmoid_prime(z):
 
 
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-sample = list(test_data)[0]
 net = Network([784, 5, 10])
-net.SGD(training_data, 1, 10, 3.0, test_data=test_data)
-# print("predict:", net.evaluate_single(sample[0]))
-# print("actual:", sample[1])
-# print("len:", len(sample[0]))
+net.SGD(training_data, 3, 10, 3.0, test_data=test_data)
 
-# w = np.array([[1,2,3],
-#               [4,5,6],
-#               [7,8,9]])
-# # a = np.array([[1],[2],[3]])
-# a = np.array([[1,2,3]])
-
-# print(np.dot(a, w))
+# x = np.array([[1,2,3], [4,5,6]]) # 2 3
+# y = np.array([[[1],[2],[3]],[[4],[5],[6]],[[7],[8],[9]]]) # 3 3 1 
+# print(x.shape, y.shape)
+# print(np.dot(x,y).shape)
+# print(np.dot(x,y))
+# print(np.transpose(np.dot(x,y), (1,0,2)))
+# print(np.transpose(np.dot(x,y), (1,0,2)).shape)

@@ -15,7 +15,7 @@ and omits many desirable features.
 #### Libraries
 # Standard library
 import random
-
+from utils import time_checker
 # Third-party libraries
 import numpy as np
 
@@ -44,6 +44,7 @@ class Network(object):
             a = sigmoid(np.dot(w, a)+b)
         return a
 
+    @time_checker
     def SGD(self, training_data, epochs, mini_batch_size, eta,
             test_data=None):
         """Train the neural network using mini-batch stochastic
