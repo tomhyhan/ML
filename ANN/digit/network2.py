@@ -179,7 +179,7 @@ def sigmoid_prime(z):
 
 
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-net = Network([784, 5, 10])
+net = Network([784, 15, 10, 10])
 net.SGD(training_data, 3, 10, 3.0, test_data=test_data)
 
 # x = np.array([[1,2,3], [4,5,6]]) # 2 3

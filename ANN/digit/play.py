@@ -1,13 +1,11 @@
-import pickle
+import math
 
-# Example: Serialize a Python object and save it to a file
-data = [["a","b"],["c","d"]]
+t = 2
+print(math.log(2) * 2 ** t )
+print(math.log(2) * math.exp(math.log(2) * t))
 
-with open('data.pkl', 'wb') as file:
-    pickle.dump(data, file)
+# cross entropy when y is not 0 or 1
+y = 0.49999
+print((y * math.log(y)) + ((1 - y)*math.log((1-y))))
 
-# Now, let's deserialize the object using pickle.load
-with open('data.pkl', 'rb') as file:
-    loaded_data = pickle.load(file)
-
-print(loaded_data)
+# print(math.exp(1))
