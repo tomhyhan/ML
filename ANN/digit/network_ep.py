@@ -16,6 +16,7 @@ features.
 import json
 import random
 import sys
+import mnist_loader
 
 # Third-party libraries
 import numpy as np
@@ -31,7 +32,10 @@ class QuadraticCost(object):
         ``y``.
 
         """
-        return 0.5*np.linalg.norm(a-y)**2
+        # return 0.5*np.linalg.norm(a-y)**2
+        # print(0.5*np.sum((a-y)**2))
+        # print(0.5*np.linalg.norm(a-y)**2)
+        return 0.5*np.sum((a-y)**2)
 
     @staticmethod
     def delta(z, a, y):
@@ -358,3 +362,8 @@ def sigmoid(z):
 def sigmoid_prime(z):
     """Derivative of the sigmoid function."""
     return sigmoid(z)*(1-sigmoid(z))
+
+training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+# net = network.Network([784, 15, 10, 10])
+net = Network([784, 5, 10], cost=QuadraticCost)
+net.SGD(training_data, 3, 10, 3.0, evaluation_data=test_data, monitor_evaluation_cost=True)

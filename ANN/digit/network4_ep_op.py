@@ -5,12 +5,18 @@ import numpy as np
 import mnist_loader
 
 class QuadraticCost:
+    @staticmethod
+    def cost_fn(a,y):
+        return 0.5 * np.sum((y-a) ** 2)
     
     @staticmethod
     def delta(a, y, z):
         return (a-y) * sigmoid_prime(z)
 
 class CrossEntropyCost:
+    @staticmethod
+    def cost_fn(a,y):
+        return -np.sum(np.nan_to_num(y * np.log(a) + (1-y) * np.log(1-a)))
 
     @staticmethod
     def delta(a, y, z):
@@ -63,10 +69,14 @@ class Network:
         self.weights = [w - (learning_rate / len(mini_batch)) * nw for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b - (learning_rate / len(mini_batch)) * nb for b, nb in zip(self.biases, nabla_b)]
     
-    def SGD(self, epochs, learning_rate, mini_batch_size, training_data, test_data = None):
+    def SGD(self, epochs, learning_rate, mini_batch_size, training_data, test_data = None, early_stopping_n = 0, monitor_training_cost= False, monitor_training_accuracy=False, monitor_test_cost=False, monitor_test_accuracy=False):
         training_data = list(training_data)
         training_data_len = len(training_data)
 
+        best_accuracy = 0
+        no_accuracy_chage = 0
+        current_accuracy = None
+        
         if test_data:
             test_data = list(test_data)
             test_data_len = len(test_data)
@@ -76,12 +86,56 @@ class Network:
             mini_batchs = [training_data[k:k+mini_batch_size] for k in range(0,training_data_len, mini_batch_size)]
             for mini_batch in mini_batchs:
                 self.update_mini_batch(mini_batch, learning_rate)
-                
-            if test_data:
-                print(f"Epoch {epoch}: {self.evaluate(test_data)} {test_data_len}")
-            else:
-                print(f"Epoch {epoch} complete!")
 
+            print(f"Epoch {epoch} complete")
+            print("Report: ---------------")
+            if monitor_training_cost:
+                cost = self.current_cost(training_data)
+                print(f"Training cost: {cost}")
+            if monitor_training_accuracy:
+                accuracy = self.accuracy(training_data, convert=True)
+                print(f"Training Data Accuracy: {accuracy} / {training_data_len}")
+            if monitor_test_cost:
+                cost = self.current_cost(test_data, convert=True)
+                print(f"Test cost: {cost}")
+            if monitor_test_accuracy:
+                accuracy = self.accuracy(test_data)
+                current_accuracy = accuracy
+                print(f"Test Data Accuracy: {accuracy} / {test_data_len}")
+
+            if early_stopping_n > 0:
+                if current_accuracy is None:
+                    print("please turn on test accuracy mode")
+                    return
+
+                if current_accuracy > best_accuracy:
+                    best_accuracy = current_accuracy
+                    no_accuracy_chage = 0
+                    print(f"Best Accuracy so far is {best_accuracy}")
+                else:
+                    no_accuracy_chage += 1
+                
+                if early_stopping_n == no_accuracy_chage:
+                    print(f"Early Exit: no accuracy changed in {no_accuracy_chage}")
+                    return
+        
+        
+    def accuracy(self, data, convert=False):
+        if convert:
+            results = [(np.argmax(self.feedforward(image)), np.argmax(valid)) for image, valid in data]
+        else:
+            results = [(np.argmax(self.feedforward(image)), valid) for image, valid in data]
+        return sum([predict == result for predict, result in results])
+    
+    def current_cost(self, training_data, convert=False):
+        cost = 0
+        for image, validations in training_data:
+            if convert:
+                validations = vectorized_result(validations)
+            a = self.feedforward(image)
+            cost += self.cost.cost_fn(a, validations)
+        return cost / len(training_data)
+        
     def evaluate(self, test_data):
         test_results = [(np.argmax(self.feedforward(image)), valid) for image, valid in test_data]
         return sum([predict == result for predict, result in test_results])
@@ -107,7 +161,12 @@ def sigmoid(z):
 def sigmoid_prime(z):
     return sigmoid(z)*(1-sigmoid(z))
 
+def vectorized_result(j):
+    e = np.zeros((10, 1))
+    e[j] = 1.0
+    return e
+
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
 net = Network([784, 15, 10, 10])
-net.SGD(3, 0.5, 10, training_data, test_data=test_data)
+net.SGD(30, 0.5, 10, training_data, test_data=test_data, monitor_training_cost=False, monitor_training_accuracy=False, monitor_test_cost=False, monitor_test_accuracy=True, early_stopping_n=5)
 net.save()
