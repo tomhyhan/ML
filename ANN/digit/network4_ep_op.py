@@ -60,16 +60,16 @@ class Network:
             nabla_w[-layer] = np.sum(np.matmul(delta, np.transpose(activations[-layer-1], (0,2,1))), axis=0)
         return nabla_b, nabla_w
 
-    def update_mini_batch(self, mini_batch, learning_rate):
+    def update_mini_batch(self, mini_batch, learning_rate, lmbda, n):
         images = [image for image, _ in mini_batch]
         valids = [valids for _, valids in mini_batch]
         
         nabla_b, nabla_w = self.backprop(images, valids)
         
-        self.weights = [w - (learning_rate / len(mini_batch)) * nw for w, nw in zip(self.weights, nabla_w)]
+        self.weights = [(1- learning_rate * (lmbda/n)) * w - (learning_rate / len(mini_batch)) * nw for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b - (learning_rate / len(mini_batch)) * nb for b, nb in zip(self.biases, nabla_b)]
     
-    def SGD(self, epochs, learning_rate, mini_batch_size, training_data, test_data = None, early_stopping_n = 0, monitor_training_cost= False, monitor_training_accuracy=False, monitor_test_cost=False, monitor_test_accuracy=False):
+    def SGD(self, epochs, learning_rate, mini_batch_size, training_data, test_data = None, early_stopping_n = 0, monitor_training_cost= False, monitor_training_accuracy=False, monitor_test_cost=False, monitor_test_accuracy=False, lmbda=0):
         training_data = list(training_data)
         training_data_len = len(training_data)
 
@@ -85,18 +85,18 @@ class Network:
             random.shuffle(training_data)
             mini_batchs = [training_data[k:k+mini_batch_size] for k in range(0,training_data_len, mini_batch_size)]
             for mini_batch in mini_batchs:
-                self.update_mini_batch(mini_batch, learning_rate)
+                self.update_mini_batch(mini_batch, learning_rate, lmbda, training_data_len)
 
             print(f"Epoch {epoch} complete")
             print("Report: ---------------")
             if monitor_training_cost:
-                cost = self.current_cost(training_data)
+                cost = self.current_cost(training_data, lmbda)
                 print(f"Training cost: {cost}")
             if monitor_training_accuracy:
                 accuracy = self.accuracy(training_data, convert=True)
                 print(f"Training Data Accuracy: {accuracy} / {training_data_len}")
             if monitor_test_cost:
-                cost = self.current_cost(test_data, convert=True)
+                cost = self.current_cost(test_data, lmbda, convert=True)
                 print(f"Test cost: {cost}")
             if monitor_test_accuracy:
                 accuracy = self.accuracy(test_data)
@@ -127,13 +127,14 @@ class Network:
             results = [(np.argmax(self.feedforward(image)), valid) for image, valid in data]
         return sum([predict == result for predict, result in results])
     
-    def current_cost(self, training_data, convert=False):
+    def current_cost(self, training_data, lmbda, convert=False):
         cost = 0
         for image, validations in training_data:
             if convert:
                 validations = vectorized_result(validations)
             a = self.feedforward(image)
             cost += self.cost.cost_fn(a, validations)
+            cost += 0.5*(lmbda/len(training_data))*sum(np.linalg.norm(w)**2 for w in self.weights)
         return cost / len(training_data)
         
     def evaluate(self, test_data):
@@ -167,6 +168,6 @@ def vectorized_result(j):
     return e
 
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
-net = Network([784, 15, 10, 10])
-net.SGD(30, 0.5, 10, training_data, test_data=test_data, monitor_training_cost=False, monitor_training_accuracy=False, monitor_test_cost=False, monitor_test_accuracy=True, early_stopping_n=5)
+net = Network([784, 100, 10])
+net.SGD(50, 0.5, 10, training_data, test_data=test_data, monitor_training_cost=False, monitor_training_accuracy=False, monitor_test_cost=False, monitor_test_accuracy=True, lmbda=5)
 net.save()
