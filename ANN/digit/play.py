@@ -18,7 +18,11 @@ import numpy as np
 
 # print(math.exp(1.2) / math.exp(1.2))
 
-x = np.array([0.4,0.5,0.6])
-y = np.array([0.1,0.2,0.3])
+# x = np.array([0.4,0.5,0.6])
+# y = np.array([0.1,0.2,0.3])
 
-print(np.linalg.norm(x-y))
+# print(np.linalg.norm(x-y))
+
+# standard deviation of normal distribution
+# squashing Gaussian down
+print(np.sqrt((1 / 1000) * 500 + 1))
