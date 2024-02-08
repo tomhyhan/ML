@@ -169,5 +169,5 @@ def vectorized_result(j):
 
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
 net = Network([784, 5, 10])
-net.SGD(10, 0.5, 10, training_data, test_data=test_data, monitor_training_cost=False, monitor_training_accuracy=False, monitor_test_cost=False, monitor_test_accuracy=True, lmbda=5)
+net.SGD(10, 0.5, 10, training_data, test_data=test_data, monitor_training_cost=True, monitor_training_accuracy=False, monitor_test_cost=True, monitor_test_accuracy=True, lmbda=5)
 net.save()

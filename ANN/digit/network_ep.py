@@ -316,7 +316,7 @@ class Network(object):
             a = self.feedforward(x)
             if convert: y = vectorized_result(y)
             cost += self.cost.fn(a, y)/len(data)
-            cost += 0.5*(lmbda/len(data))*sum(np.linalg.norm(w)**2 for w in self.weights) # '**' - to the power of.
+        cost += 0.5*(lmbda/len(data))*sum(np.linalg.norm(w)**2 for w in self.weights) # '**' - to the power of.
         return cost
 
     def save(self, filename):
@@ -365,5 +365,5 @@ def sigmoid_prime(z):
 
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
 # net = network.Network([784, 15, 10, 10])
-net = Network([784, 5, 10], cost=QuadraticCost)
-net.SGD(training_data, 3, 10, 3.0, evaluation_data=test_data, monitor_evaluation_cost=True)
+net = Network([784, 30, 10], cost=QuadraticCost)
+net.SGD(training_data, 3, 10, 1.0, lmbda=3, evaluation_data=test_data, monitor_training_cost=True)
