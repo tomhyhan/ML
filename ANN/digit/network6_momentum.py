@@ -24,7 +24,9 @@ class Network:
         self.num_layers = len(sizes)
         self.cost = cost
         self.biases, self.weights  = self.default_weight_initializer(sizes)
-        
+        self.v_weights = [np.zeros((wj,wk)) / np.sqrt(wk) for wk, wj in zip(sizes[:-1], sizes[1:])] 
+        self.v_biases = [np.zeros((b,1)) for b in sizes[1:]]
+
     def default_weight_initializer(self, sizes):
         return [np.random.randn(b,1)  for b in sizes[1:]], [np.random.randn(wj,wk) / np.sqrt(wk) for wk, wj in zip(sizes[:-1], sizes[1:])] 
         
@@ -34,6 +36,7 @@ class Network:
     
     
     def SGD(self, epochs, training_data, learning_rate, mini_batch_size, 
+    friction=1,
     lmbda=0, 
     test_data=None, 
     early_stopping_n=0,             monitor_evaluation_cost=False,
@@ -59,7 +62,7 @@ class Network:
             random.shuffle(training_data)
             mini_batchs = [training_data[k:k+mini_batch_size] for k in range(0,training_data_len,mini_batch_size)]
             for mini_batch in mini_batchs:
-                self.update_mini_batch(mini_batch, learning_rate, lmbda, training_data_len)
+                self.update_mini_batch(mini_batch, learning_rate, lmbda, training_data_len, friction)
                 
             end_time = time.time()
             elapsed_time = end_time - start_time
@@ -77,13 +80,15 @@ class Network:
                 print("Cost on evaluation data: {}".format(cost))
             if monitor_evaluation_accuracy:
                 accuracy = self.accuracy(test_data)
-                print("Accuracy on evaluation data: {} / {}".format(self.accuracy(test_data), test_data_len))
+                current_accuracy = accuracy
+                print("Accuracy on evaluation data: {} / {}".format(accuracy, test_data_len))
 
             if early_stopping_n > 0:
-                if current_accuracy > best_accuracy:
+                if current_accuracy >= best_accuracy:
                     best_accuracy = current_accuracy
                     no_accuracy_chage = 0
                 else:
+                    print(best_accuracy, current_accuracy)
                     no_accuracy_chage += 1
                 
                 if early_stopping_n == no_accuracy_chage:
@@ -94,14 +99,16 @@ class Network:
                     print(f"best accuracy {best_accuracy} learning rate: {learning_rate}")                
                     return
             
-    def update_mini_batch(self, mini_batchs, learning_rate, lmbda, n):
+    def update_mini_batch(self, mini_batchs, learning_rate, lmbda, n, friction):
         root_activations = [a for a, _ in mini_batchs] 
         valids = [v for _, v in mini_batchs] 
         
         nabla_w, nabla_b = self.backprop(root_activations, valids)
         # L2 regularization
-        self.weights = [(1-learning_rate*(lmbda / n)) * w - learning_rate / len(mini_batchs) * nw for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b - learning_rate / len(mini_batchs) * nb for b, nb in zip(self.biases, nabla_b)]
+        self.v_weights = [friction * wv - learning_rate / len(mini_batchs) * nw for wv, nw in zip(self.v_weights, nabla_w)]
+        self.v_biases = [friction * vb - learning_rate / len(mini_batchs) * nb for vb, nb in zip(self.v_biases, nabla_b)]
+        self.weights = [(1-learning_rate*(lmbda / n)) * w + vw for w, vw in zip(self.weights, self.v_weights)]
+        self.biases = [b + vb for b, vb in zip(self.biases, self.v_biases)]
 
         # L1 regularization
         # self.weights = [w - (learning_rate*(lmbda / n) * w) - (learning_rate / len(mini_batchs) * nw) for w, nw in zip(self.weights, nabla_w)]
@@ -175,10 +182,11 @@ def sigmoid_prime(z):
 
 training_data, validation_data, test_data =  mnist_loader.load_data_wrapper()
 net = Network([784, 30, 10], cost=CrossEntropyCost)
-# net.large_weight_initializer()
 training_data = list(training_data)
 test_data = list(test_data)
-net.SGD(100, training_data[:5000], 0.5, 10, lmbda=3, test_data=test_data[:500], early_stopping_n = 2, monitor_evaluation_accuracy=True, monitor_training_cost=True)
+net.large_weight_initializer()
+net.SGD(100, training_data[:5000], 0.5, 10, friction=0.5, lmbda=0, test_data=test_data[:500], early_stopping_n = 5, monitor_evaluation_accuracy=True, monitor_training_cost=True)
+
 # Epoch 0: 9281 / 10000
 # Epoch 1: 9354 / 10000
 # Epoch 2: 9324 / 10000
