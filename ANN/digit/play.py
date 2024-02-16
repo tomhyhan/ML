@@ -25,6 +25,9 @@ import numpy as np
 
 # standard deviation of normal distribution
 # squashing Gaussian down
-# print(np.sqrt((1 / 1000) * 500 + 1))
+print(np.sqrt((1 / 1000) * 500 + 1))
+print(np.sqrt(501) / np.sqrt(1000))
 
-print(0/0.8)
+print(2 * math.sqrt(2))
+print(2 * math.sqrt(2/2))
+print(2 * math.sqrt(3/2))
