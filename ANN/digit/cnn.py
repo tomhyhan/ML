@@ -209,7 +209,10 @@ class ConvPoolLayer(object):
         self.poolsize = poolsize
         self.activation_fn=activation_fn
         # initialize weights and biases
+        # 20 1 5 5
+        # 1 28 28
         n_out = (filter_shape[0]*np.prod(filter_shape[2:])/np.prod(poolsize))
+        print("n_out", n_out)
         self.w = theano.shared(
             np.asarray(
                 np.random.normal(loc=0, scale=np.sqrt(1.0/n_out), size=filter_shape),
@@ -258,6 +261,7 @@ class FullyConnectedLayer(object):
         self.output = self.activation_fn(
             (1-self.p_dropout)*T.dot(self.inpt, self.w) + self.b)
         self.y_out = T.argmax(self.output, axis=1)
+        
         self.inpt_dropout = dropout_layer(
             inpt_dropout.reshape((mini_batch_size, self.n_in)), self.p_dropout)
         self.output_dropout = self.activation_fn(

@@ -25,9 +25,17 @@ import numpy as np
 
 # standard deviation of normal distribution
 # squashing Gaussian down
-print(np.sqrt((1 / 1000) * 500 + 1))
-print(np.sqrt(501) / np.sqrt(1000))
+# print(np.sqrt((1 / 1000) * 500 + 1))
+# print(np.sqrt(501) / np.sqrt(1000))
 
-print(2 * math.sqrt(2))
-print(2 * math.sqrt(2/2))
-print(2 * math.sqrt(3/2))
+# print(2 * math.sqrt(2))
+# print(2 * math.sqrt(2/2))
+# print(2 * math.sqrt(3/2))
+
+# init weight
+x = np.asarray(np.random.normal(loc=0.0, scale=np.sqrt(1.0/10), size=(5, 10)))
+y = np.random.normal(loc=0.0, scale=np.sqrt(1.0/10), size=(5, 10))
+print(x, )
+print()
+print(type(x) == type(y))
+print(np.random.randn(2,2))
