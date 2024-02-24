@@ -33,9 +33,14 @@ import numpy as np
 # print(2 * math.sqrt(3/2))
 
 # init weight
-x = np.asarray(np.random.normal(loc=0.0, scale=np.sqrt(1.0/10), size=(5, 10)))
-y = np.random.normal(loc=0.0, scale=np.sqrt(1.0/10), size=(5, 10))
-print(x, )
-print()
-print(type(x) == type(y))
-print(np.random.randn(2,2))
+# x = np.asarray(np.random.normal(loc=0.0, scale=np.sqrt(1.0/10), size=(5, 10)))
+# y = np.random.normal(loc=0.0, scale=np.sqrt(1.0/10), size=(5, 10))
+# print(x, )
+# print()
+# print(type(x) == type(y))
+# print(np.random.randn(2,2))
+
+import torch
+x = torch.rand(5,3)
+print(x)
+print(torch.cuda.is_available())

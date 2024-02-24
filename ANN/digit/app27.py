@@ -11,6 +11,7 @@ c= ConvPoolLayer(
             filter_shape=(20,1,5,5),
             poolsize=(2,2),
             activation_fn=ReLU)
+print(c)
 # net = Network([
 #         ConvPoolLayer(
 #             image_shape=(mini_batch_size, 1,28,28), 
