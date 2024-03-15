@@ -1,13 +1,48 @@
 import torch as t
 from torch import nn 
 import numpy as np
+import gzip
+import pickle
+import random
 
-x = t.tensor(np.array([1,2,3]))
-# print(t.abs(x))
+class Network:
+    def __init__(self, layers, mini_batch_size):
+        self.layers = layers
+        self.mini_batch_size = mini_batch_size
+        # self.params = [param for layer in self.layers for param in layer.params]
+    
+    def SGD(self, training_data, epochs, mini_batch_size, eta, validation_data, test_data, lmbda=0.0):
+        
+        training_x, training_y = training_data
+        validation_x, validation_y = validation_data
+        test_x, test_y = test_data
+        # print(training_data[0][0].shape)
 
-conv = nn.Conv2d(1, 10, 5, stride=2)
-print(conv)
+        num_training_batches = len(training_data[0]) // mini_batch_size 
+        num_validation_batches = len(validation_data) // mini_batch_size 
+        num_test_batches = len(test_data) // mini_batch_size 
+        # print(len(training_x))
+        # print(num_training_batches)
+        pass
+    
+        l2_norm_sqaured = sum([(layer.w**2).sum() for layer in self.layers])
+        # self.layers[-1].cost(self)
 
+        print(l2_norm_sqaured)
+
+        for epoch in range(epochs):
+            for i in range(num_training_batches):
+                mini_batch = training_x[i * mini_batch_size: (i+1) * mini_batch_size] 
+                init_layer = self.layers[0]
+                print(len(mini_batch))
+                init_layer.set_input(mini_batch, mini_batch, mini_batch_size)
+                
+                for l in range(1,len(self.layers)):
+                    prev_layer, layer = self.layers[l-1], self.layers[l]
+                    # fully connected y ???
+                    layer.set_input(prev_layer.output, prev_layer.dropout_output, mini_batch_size)
+                break
+            break
 class ConvPoolLayer:
     def __init__(self, image_shape, filter_shape, poolsize=(2,2), activation_fn=t.sigmoid):
         """
@@ -28,20 +63,22 @@ class ConvPoolLayer:
 
         self.params = [self.w, self.b]
 
-    def set_input(self, input):
+    def set_input(self, inpt, inpt_dropout, mini_batch_size):
         conv = nn.Conv2d(in_channels=self.filter_shape[1], out_channels=self.filter_shape[0], kernel_size=(self.filter_shape[2], self.filter_shape[3]))
 
         # later input actual image !
-        image_input = t.randn(self.image_shape)
+        # image_input = t.randn(self.image_shape)
+        self.inpt = t.reshape(inpt, self.image_shape)
+        print("conv layer input reshape: ", self.inpt.shape)
 
-        conv_out = conv(image_input)
+        conv_out = conv(self.inpt)
+        # print(conv_out)
         pool2d = nn.MaxPool2d((2,2), stride=2)
         pool_out = pool2d(conv_out)
         b_expanded = self.b.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
         self.output = self.activation_fn(pool_out + b_expanded)
         self.output_dropout = self.output
-        print(self.output_dropout.shape)
-    
+        print("conv layer output: ", self.output_dropout.shape)
     
 class FullyConnectedLayer:
     def __init__(self, n_in, n_out, activation_fn=t.sigmoid, p_dropout=0.0):
@@ -56,22 +93,14 @@ class FullyConnectedLayer:
     
     def set_input(self, inpt, inpt_dropout, mini_batch_size):
         self.inpt = t.reshape(inpt, (mini_batch_size, self.n_in))
-        print(self.inpt.shape, self.w.shape)
         self.output = ((1 - self.p_dropout) * t.matmul(self.inpt, self.w) + self.b)
 
         # figure out with actual image data 
         self.y_output = t.argmax(self.output, axis=1)
-
+        
         dropout = nn.Dropout(self.p_dropout)
         self.input_dropout = dropout(t.reshape(inpt_dropout, (mini_batch_size, self.n_in)))
         self.output_dropout = self.activation_fn(t.matmul(self.input_dropout, self.w) + self.b)
-        # print("shape")
-        # print(self.output.shape)
-        # print(self.output_dropout.shape)
-        # print(self.input_dropout[0])
-        # print(self.output_dropout[0])
-        # print(self.activation_fn(np.dot(self.inpt, self.w)) + self.b)
-        pass
     
 class SoftmaxLayer:
     def __init__(self, n_in, n_out, p_dropout=0.0):
@@ -84,32 +113,59 @@ class SoftmaxLayer:
     
     def set_input(self, inpt, inpt_dropout, mini_bath_size):
         self.inpt = t.reshape(inpt, (mini_bath_size, self.n_in))
-        print("softmax")
-        print(inpt.shape)
-        print(self.inpt.shape)
-        softmax = nn.Softmax(dim=1)
+        softmax = nn.LogSoftmax(dim=1)
         self.output = softmax((1-self.p_dropout)*t.matmul(self.inpt, self.w) + self.b)
         dropout = nn.Dropout(self.p_dropout)
         self.input_dropout = dropout(t.reshape(inpt_dropout, (mini_bath_size, self.n_in)))
         self.output_drop = softmax(t.matmul(self.input_dropout, self.w) + self.b)
-        print(self.output.shape)
-        print(self.input_dropout)
-        print(self.output_drop)
-        
+
+    def cost(self, net):
+        print("cost")
+        print(t.log(self.output_drop))
         pass
+    
+def load_shared_data():
+    mnist_file_path = "../mnist.pkl.gz"
+    with gzip.open(mnist_file_path, 'rb') as f:
+        training_data, validation_data, test_data = pickle.load(f, encoding='latin1')
+
+    def convert_to_tensor(data):
+        image, numbers = data
+        image = t.tensor(image)
+        numbers = t.tensor(numbers)
+        return image, numbers
+
+    training_data = convert_to_tensor(training_data)
+    validation_data = convert_to_tensor(validation_data)
+    test_data = convert_to_tensor(test_data)
+    return training_data, validation_data, test_data
+    
+training_data, validation_data, test_data = load_shared_data()
 # first layer
 # c = ConvPoolLayer(image_shape=(10,1,28,28), filter_shape=(20,1,5,5))
 # ConvPoolLayer(image_shape=(mini_batch_size, 20, 12, 12), 
 #               filter_shape=(40, 20, 5, 5), 
 #               poolsize=(2, 2)),
 # second layer
-c = ConvPoolLayer(image_shape=(10,20,12,12), filter_shape=(40,20,5,5))
-c.set_input(10)
-print(c.output.shape)
-f = FullyConnectedLayer(40 * 4 * 4, 100, p_dropout=0.5)
-f.set_input(c.output, c.output, 10)
-s = SoftmaxLayer(100, 10, p_dropout=0.5)
-s.set_input(f.output, f.output_dropout, 10)
+
+# c = ConvPoolLayer(image_shape=(10,20,12,12), filter_shape=(40,20,5,5))
+# c.set_input(10)
+# f = FullyConnectedLayer(40 * 4 * 4, 100, p_dropout=0.5)
+# f.set_input(c.output, c.output, 10)
+# s = SoftmaxLayer(100, 10, p_dropout=0.5)
+# s.set_input(f.output, f.output_dropout, 10)
+
+mini_batch_size = 10
+net = Network([
+        ConvPoolLayer(
+            image_shape=(mini_batch_size, 1,28,28), 
+            filter_shape=(20,1,5,5),
+            poolsize=(2,2)),
+        FullyConnectedLayer(n_in=20*12*12, n_out=100),
+        SoftmaxLayer(n_in=100, n_out=10)], mini_batch_size)
+
+net.SGD(test_data=test_data, epochs=10, mini_batch_size=10, eta=0.1, validation_data=validation_data, training_data=training_data, lmbda=0.0)
+
 
 # # Assuming self.b is a tensor
 # b = t.randn(10)
