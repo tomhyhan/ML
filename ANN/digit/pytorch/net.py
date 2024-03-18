@@ -9,7 +9,7 @@ class Network:
     def __init__(self, layers, mini_batch_size):
         self.layers = layers
         self.mini_batch_size = mini_batch_size
-        # self.params = [param for layer in self.layers for param in layer.params]
+        self.params = [param for layer in self.layers for param in layer.params]
     
     def SGD(self, training_data, epochs, mini_batch_size, eta, validation_data, test_data, lmbda=0.0):
         
@@ -25,22 +25,30 @@ class Network:
         # print(num_training_batches)
         pass
     
-        l2_norm_sqaured = sum([(layer.w**2).sum() for layer in self.layers])
+        
         # self.layers[-1].cost(self)
 
-        print(l2_norm_sqaured)
-
+        # print(l2_norm_sqaured)
+        # print(training_y)
         for epoch in range(epochs):
             for i in range(num_training_batches):
                 mini_batch = training_x[i * mini_batch_size: (i+1) * mini_batch_size] 
+                mini_batch_y = training_y[i * mini_batch_size: (i+1) * mini_batch_size] 
+                
                 init_layer = self.layers[0]
                 print(len(mini_batch))
                 init_layer.set_input(mini_batch, mini_batch, mini_batch_size)
                 
                 for l in range(1,len(self.layers)):
                     prev_layer, layer = self.layers[l-1], self.layers[l]
-                    # fully connected y ???
-                    layer.set_input(prev_layer.output, prev_layer.dropout_output, mini_batch_size)
+                    layer.set_input(prev_layer.output, prev_layer.output_dropout, mini_batch_size)
+                print("mini_batch_y: ", mini_batch_y)
+
+                l2_norm_sqaured = sum([(layer.w**2).sum() for layer in self.layers])
+                cost = self.layers[-1].cost(mini_batch_y) + 0.5*lmbda*l2_norm_sqaured / num_training_batches
+                print("params")
+                print(self.params[-1])
+                print(cost.backward())
                 break
             break
 class ConvPoolLayer:
@@ -89,6 +97,7 @@ class FullyConnectedLayer:
         
         self.w = t.tensor(np.random.normal(loc=0, scale=np.sqrt(1 / n_out), size=(n_in, n_out)))
         self.b = t.tensor(np.random.normal(loc=0, scale=1, size=(n_out, )))
+        
         self.params = [self.w, self.b]
     
     def set_input(self, inpt, inpt_dropout, mini_batch_size):
@@ -97,7 +106,7 @@ class FullyConnectedLayer:
 
         # figure out with actual image data 
         self.y_output = t.argmax(self.output, axis=1)
-        
+
         dropout = nn.Dropout(self.p_dropout)
         self.input_dropout = dropout(t.reshape(inpt_dropout, (mini_batch_size, self.n_in)))
         self.output_dropout = self.activation_fn(t.matmul(self.input_dropout, self.w) + self.b)
@@ -109,20 +118,30 @@ class SoftmaxLayer:
         self.p_dropout = p_dropout
         self.w = t.tensor(np.zeros((n_in, n_out)))
         self.b = t.tensor(np.zeros((n_out)))
+        
         self.params = [self.w, self.b]
     
     def set_input(self, inpt, inpt_dropout, mini_bath_size):
         self.inpt = t.reshape(inpt, (mini_bath_size, self.n_in))
-        softmax = nn.LogSoftmax(dim=1)
+        softmax = nn.Softmax(dim=1)
         self.output = softmax((1-self.p_dropout)*t.matmul(self.inpt, self.w) + self.b)
+        
+        self.y_out = t.argmax(self.output, axis=1)
+        # print("self.y_output", self.y_out)
+        # print(self.output.shape)
+        
         dropout = nn.Dropout(self.p_dropout)
         self.input_dropout = dropout(t.reshape(inpt_dropout, (mini_bath_size, self.n_in)))
         self.output_drop = softmax(t.matmul(self.input_dropout, self.w) + self.b)
-
-    def cost(self, net):
-        print("cost")
-        print(t.log(self.output_drop))
-        pass
+        # print((t.matmul(self.input_dropout, self.w) + self.b).shape)
+        # print(self.output_drop)
+        
+    def cost(self, real_y):
+        out = t.log(self.output_drop[t.arange(real_y.shape[0]), real_y])
+        return -t.mean(out)
+    
+    def accuracy(self, real_y):
+        return t.mean(t.eq(real_y, self.y_out))
     
 def load_shared_data():
     mnist_file_path = "../mnist.pkl.gz"
