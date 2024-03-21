@@ -174,6 +174,7 @@ class Network(object):
 
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
+        print(training_data[0])
         for j in range(epochs):
             random.shuffle(training_data)
             mini_batches = [

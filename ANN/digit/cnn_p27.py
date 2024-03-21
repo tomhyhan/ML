@@ -48,6 +48,7 @@ def linear(z): return z
 def ReLU(z): return T.maximum(0.0, z)
 from theano.tensor.nnet import sigmoid
 from theano.tensor import tanh
+from theano.printing import Print
 
 #### Constants
 GPU = True
@@ -76,6 +77,9 @@ def load_data_shared(filename="./mnist.pkl.gz"):
         shared_y = theano.shared(
             np.asarray(data[1], dtype=theano.config.floatX), borrow=True)
         return shared_x, T.cast(shared_y, "int32")
+    print size
+    print training_data[0]
+    print training_data[1]
     return [shared(training_data), shared(validation_data), shared(test_data)]
 
 #### Main class used to construct and train networks
@@ -90,12 +94,14 @@ class Network(object):
         self.layers = layers
         self.mini_batch_size = mini_batch_size
         self.params = [param for layer in self.layers for param in layer.params]
+        print "params"
+        print self.params
         self.x = T.matrix("x")
         self.y = T.ivector("y")
         init_layer = self.layers[0]
         init_layer.set_inpt(self.x, self.x, self.mini_batch_size)
         for j in xrange(1, len(self.layers)):
-            prev_layer, layer  = self.layers[j-1], self.layers[j]
+            prev_layer, layer = self.layers[j-1], self.layers[j]
             layer.set_inpt(
                 prev_layer.output, prev_layer.output_dropout, self.mini_batch_size)
         self.output = self.layers[-1].output
@@ -107,7 +113,6 @@ class Network(object):
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
         test_x, test_y = test_data
-
         # compute number of minibatches for training, validation and testing
         num_training_batches = size(training_data)/mini_batch_size
         num_validation_batches = size(validation_data)/mini_batch_size
@@ -115,6 +120,8 @@ class Network(object):
 
         # define the (regularized) cost function, symbolic gradients, and updates
         l2_norm_squared = sum([(layer.w**2).sum() for layer in self.layers])
+        print "l2_norm_squared"
+        print l2_norm_squared.eval()
         cost = self.layers[-1].cost(self)+\
                0.5*lmbda*l2_norm_squared/num_training_batches
         grads = T.grad(cost, self.params)
@@ -132,6 +139,8 @@ class Network(object):
                 self.y:
                 training_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             })
+        print "validation"
+        print validation_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
         validate_mb_accuracy = theano.function(
             [i], self.layers[-1].accuracy(self.y),
             givens={
@@ -238,8 +247,15 @@ class ConvPoolLayer(object):
             input=self.inpt, filters=self.w, filter_shape=self.filter_shape)
         pooled_out = pool_2d(
             input=conv_out, ws=self.poolsize, ignore_border=True)
+        
+        # compute_pooled_out = theano.function(inputs=[conv_out], outputs=pooled_out)
+        # inr = np.random.randn(10,20,12,12)
+
+        # print out
         self.output = self.activation_fn(
             pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
+        x = pooled_out + self.b.dimshuffle('x', 0, 'x', 'x')
+        print self.b.dimshuffle('x', 0, 'x', 'x').eval().shape
         self.output_dropout = self.output # no dropout in the convolutional layers
 
 class FullyConnectedLayer(object):
@@ -301,6 +317,9 @@ class SoftmaxLayer(object):
 
     def cost(self, net):
         "Return the log-likelihood cost."
+        print "cost"
+        print(net.y)
+        print(net.y.shape)
         return -T.mean(T.log(self.output_dropout)[T.arange(net.y.shape[0]), net.y])
 
     def accuracy(self, y):
@@ -311,6 +330,8 @@ class SoftmaxLayer(object):
 #### Miscellanea
 def size(data):
     "Return the size of the dataset `data`."
+    print "size inside"
+    print(data[0].get_value(borrow=True).shape)
     return data[0].get_value(borrow=True).shape[0]
 
 def dropout_layer(layer, p_dropout):
