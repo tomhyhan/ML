@@ -1,9 +1,8 @@
 import torch as t
 import torch.nn as nn
 import torchvision
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import random_split, DataLoader, Subset
 from torch.optim import SGD
-
 from matplotlib import pyplot as plt
 
 class Model(nn.Module):
@@ -28,6 +27,7 @@ class Model(nn.Module):
         x = self.relu(self.pool2(self.conv2(x)))
         x = x.view(-1, self.num_flat_features(x))
         x = self.relu(self.dropout(self.fc1(x)))
+        # x = self.relu(self.fc1(x))
         x = self.softmax(self.fc2(x))
         return x
         
@@ -44,24 +44,69 @@ class Model(nn.Module):
     
 def load_data():
     mnist_data = torchvision.datasets.MNIST(download=True, root="./", transform=torchvision.transforms.ToTensor())
-    print(len(mnist_data))
     mnist_train, mnist_test = random_split(mnist_data, [50000,10000])
-    return mnist_train, mnist_test
+    return Subset(mnist_train, t.arange(0,50000)), Subset(mnist_test, t.arange(0,10000))
 
 def train():
     mnist_train, mnist_test = load_data()
     model = Model()
-    sgd = SGD(model.parameters(), lr=0.1, weight_decay=0.5, momentum=0.8, )
-    # what is damping
-    print(model.parameters())
-    # epches = 1
-    # for epoch in range(epches):
-    #     mini_batches = DataLoader(mnist_train, 10, shuffle=True)
-    #     for mini_batch in mini_batches:
-    #         images, target = mini_batch
-    #         output = model(images)
-    #         print(output)
-    #         print(target)
-    #         break
+    # best so far 0.03 0.005 0.5
+    # 0.03
+    learning_rate = 0.03
+    # 0.1 0.01
+    # -> better
+    weight_decay = 0.005
+    momentum = 0.5
+    mini_batch_size = 10
 
+    sgd = SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=momentum)
+    loss_fn = nn.CrossEntropyLoss()
+    
+    print(len(mnist_train))
+    epches = 5
+    for epoch in range(epches):
+        mini_batches = DataLoader(mnist_train, mini_batch_size, shuffle=True)
+        test_data = DataLoader(mnist_test, len(mnist_test), shuffle=False)
+
+        print(f"starting epoch {epoch}...")
+        for i, mini_batch in enumerate(mini_batches):
+            if i % 1000 == 0:
+                print(f"{i*10} image has been trained")
+            images, target = mini_batch
+            predict = model(images)
+            cost = loss_fn(predict, target)
+
+            sgd.zero_grad()
+            cost.backward()
+            sgd.step()
+
+        with t.no_grad():
+            total_loss = 0
+            correct = 0
+            for data, target in test_data:
+                output = model(data)
+                loss = loss_fn(output, target)
+                total_loss += loss.item()
+                pred = output.argmax(1)
+                # print("??")
+                # print((pred == target))
+                # print((pred == target).sum())
+                # print((pred == target).sum().item())
+                correct += (pred == target).sum().item()
+            accuracy = correct / len(mnist_test)
+        print(f"\nTest Accuracy: {accuracy}")
+        # found = 0
+        # for data in mnist_test:
+        #     image, number = data
+        #     predict = model(image.unsqueeze(0))
+        #     # print("test")
+        #     # print(image.shape)
+        #     # print(predict)
+        #     # found += t.argmax(predict) == number
+        #     found += (t.argmax(predict) == number).float().sum()
+        #     # print((t.argmax(predict) == number).float().sum())
+        #     # break
+        
+        # print("accuracy: ", found / len(mnist_test))
+        
 train()
