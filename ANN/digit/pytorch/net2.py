@@ -2,7 +2,7 @@ import torch as t
 import torch.nn as nn
 import torchvision
 from torch.utils.data import random_split, DataLoader, Subset
-from torch.optim import SGD
+from torch.optim import SGD, Adam
 from matplotlib import pyplot as plt
 
 class Model(nn.Module):
@@ -52,14 +52,16 @@ def train():
     model = Model()
     # best so far 0.03 0.005 0.5
     # 0.03
-    learning_rate = 0.03
+    # learning_rate = 0.03
+    learning_rate = 0.001
     # 0.1 0.01
     # -> better
     weight_decay = 0.005
     momentum = 0.5
     mini_batch_size = 10
 
-    sgd = SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=momentum)
+    # sgd = SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=momentum)
+    sgd = Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.CrossEntropyLoss()
     
     print(len(mnist_train))

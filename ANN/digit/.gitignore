@@ -1,1 +1,3 @@
-./pytorch/MNIST
+./pytorch/MNIST/
+./pytorch/food-101/
+./pytorch/food-101.tar.gz
