@@ -5,6 +5,8 @@ from torch.utils.data import random_split, DataLoader, Subset
 from torch.optim import SGD, Adam
 from matplotlib import pyplot as plt
 
+
+
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
@@ -45,7 +47,7 @@ class Model(nn.Module):
 def load_data():
     mnist_data = torchvision.datasets.MNIST(download=True, root="./", transform=torchvision.transforms.ToTensor())
     mnist_train, mnist_test = random_split(mnist_data, [50000,10000])
-    return Subset(mnist_train, t.arange(0,50000)), Subset(mnist_test, t.arange(0,10000))
+    return Subset(mnist_train, t.arange(0,5000)), Subset(mnist_test, t.arange(0,100))
 
 def train():
     mnist_train, mnist_test = load_data()
@@ -59,7 +61,7 @@ def train():
     weight_decay = 0.005
     momentum = 0.5
     mini_batch_size = 10
-
+    print(mnist_train[0][0].shape)
     # sgd = SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=momentum)
     sgd = Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.CrossEntropyLoss()
@@ -75,6 +77,8 @@ def train():
             if i % 1000 == 0:
                 print(f"{i*10} image has been trained")
             images, target = mini_batch
+            # print(images.shape)
+            # print(target)
             predict = model(images)
             cost = loss_fn(predict, target)
 
@@ -85,16 +89,20 @@ def train():
         with t.no_grad():
             total_loss = 0
             correct = 0
-            for data, target in test_data:
-                output = model(data)
-                loss = loss_fn(output, target)
-                total_loss += loss.item()
-                pred = output.argmax(1)
-                # print("??")
-                # print((pred == target))
-                # print((pred == target).sum())
-                # print((pred == target).sum().item())
-                correct += (pred == target).sum().item()
+            test_data_l = iter(test_data)
+            data, target = next(test_data_l)
+            print("test data shape: ", data.shape)
+            print("target: ", target)
+            output = model(data)
+            loss = loss_fn(output, target)
+            total_loss += loss.item()
+            pred = output.argmax(1)
+            # print("??")
+            # print((pred == target))
+            # print((pred == target).sum())
+            # print((pred == target).sum().item())
+            correct += (pred == target).sum().item()
+            print("asdf")
             accuracy = correct / len(mnist_test)
         print(f"\nTest Accuracy: {accuracy}")
         # found = 0

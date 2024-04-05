@@ -20,6 +20,7 @@ class CrossEntropyCost:
 
 class Network:
     def __init__(self, sizes, cost=CrossEntropyCost):
+        # [784, 30, 10]
         self.sizes = sizes
         self.num_layers = len(sizes)
         self.cost = cost
@@ -36,7 +37,8 @@ class Network:
     def SGD(self, epochs, training_data, learning_rate, mini_batch_size, 
     lmbda=0, 
     test_data=None, 
-    early_stopping_n=0,             monitor_evaluation_cost=False,
+    early_stopping_n=0,             
+    monitor_evaluation_cost=False,
     monitor_evaluation_accuracy=False,
     monitor_training_cost=False,
     monitor_training_accuracy=False):
@@ -97,7 +99,7 @@ class Network:
     def update_mini_batch(self, mini_batchs, learning_rate, lmbda, n):
         root_activations = [a for a, _ in mini_batchs] 
         valids = [v for _, v in mini_batchs] 
-        
+        print(len(root_activations), root_activations[0].shape)
         nabla_w, nabla_b = self.backprop(root_activations, valids)
         # L2 regularization
         self.weights = [(1-learning_rate*(lmbda / n)) * w - learning_rate / len(mini_batchs) * nw for w, nw in zip(self.weights, nabla_w)]
@@ -116,6 +118,9 @@ class Network:
 
         activation = root_activations
         for w, b in zip(self.weights, self.biases):
+            print(w.shape, np.array(activation).shape)
+            print("dot product", np.dot(w,activation).shape)
+            print(np.transpose(np.dot(w,activation), (1,0,2)).shape)
             z = np.transpose(np.dot(w,activation), (1,0,2)) + b
             zs.append(z)
             activation = sigmoid(z)

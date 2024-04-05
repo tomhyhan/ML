@@ -39,8 +39,22 @@ import numpy as np
 # print()
 # print(type(x) == type(y))
 # print(np.random.randn(2,2))
+arr1 = np.array([[1, 2, 3, 4],
+                [5, 6, 7, 8]])
 
-import torch
-x = torch.rand(5,3)
-print(x)
-print(torch.cuda.is_available())
+arr2 = np.array([[[1], [1], [1], [1]],
+                 [[2], [2], [2], [2]],
+                 [[3], [3], [3], [3]]])
+# 2 4 , 3 4 1
+print(np.matmul(arr1, arr2).shape)
+print(np.matmul(arr1, arr2))
+
+# arr1 = np.array([1, 2, 3, 4])
+
+# arr2 = np.array([[[1], [1], [1], [1]],
+#                  [[2], [2], [2], [2]],
+#                  [[3], [3], [3], [3]]])
+# print(np.dot(arr1, arr2))
+
+# 2 4 , 3 4 1
+# 30 784, 10 784 1
