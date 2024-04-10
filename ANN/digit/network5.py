@@ -119,21 +119,32 @@ class Network:
         activation = root_activations
         for w, b in zip(self.weights, self.biases):
             print(w.shape, np.array(activation).shape)
-            print("dot product", np.dot(w,activation).shape)
-            print(np.transpose(np.dot(w,activation), (1,0,2)).shape)
+            # print("dot product", np.dot(w,activation).shape)
+            # print(np.transpose(np.dot(w,activation), (1,0,2)).shape)
+            print("matmul", np.matmul(w,activation).shape)
+            # print("b shape", b.shape)
             z = np.transpose(np.dot(w,activation), (1,0,2)) + b
+            print("z", z.shape)
+            print("b", b.shape)
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
 
         delta = self.cost.delta(activations[-1], valids, zs[-1])
+        # print("delta", delta.shape)
         nabla_b[-1] = np.sum(delta, axis=0)
+        # print("nabla_b - 1", nabla_b[-1].shape)
         nabla_w[-1] = np.sum(np.matmul(delta, np.transpose(activations[-2], (0,2,1))), axis=0)
         
         for layer in range(2, self.num_layers):
             z = zs[-layer]
             sp = sigmoid_prime(z)
+            # print("weight")
+            # print(self.weights[-layer+1].shape)
+            # print(self.weights[-layer+1].transpose().shape)
             delta = np.transpose(np.dot(self.weights[-layer+1].transpose(), delta), (1,0,2)) * sp
+            # print(delta.shape)
+            # print("_____")
             nabla_b[-layer] = np.sum(delta, axis=0)
             nabla_w[-layer] = np.sum(np.matmul(delta, np.transpose(activations[-layer-1], (0,2,1))), axis=0)
         return nabla_w, nabla_b

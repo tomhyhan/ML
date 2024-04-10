@@ -267,8 +267,13 @@ class Network(object):
         for l in range(2, self.num_layers):
             z = zs[-l]
             sp = sigmoid_prime(z)
+            print("weight")
+            print(self.weights[-l+1].shape)
+            print(self.weights[-l+1].transpose().shape)
             delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
             nabla_b[-l] = delta
+            print(delta.shape)
+            print(">>>")
             nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
         return (nabla_b, nabla_w)
 
@@ -366,5 +371,5 @@ def sigmoid_prime(z):
 
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
 # net = network.Network([784, 15, 10, 10])
-net = Network([784, 30, 10], cost=QuadraticCost)
+net = Network([784, 5, 10], cost=QuadraticCost)
 net.SGD(training_data, 3, 10, 1.0, lmbda=3, evaluation_data=test_data, monitor_training_cost=True)

@@ -46,15 +46,18 @@ arr2 = np.array([[[1], [1], [1], [1]],
                  [[2], [2], [2], [2]],
                  [[3], [3], [3], [3]]])
 # 2 4 , 3 4 1
+# print(np.matmul(arr1, arr2).shape)
+# print(np.matmul(arr1, arr2))
+
+arr1 = np.array([1, 2, 3, 4])
+
+arr2 = np.array([[[1], [1], [1], [1]]])
+print(arr1.shape, arr2.shape)
 print(np.matmul(arr1, arr2).shape)
 print(np.matmul(arr1, arr2))
-
-# arr1 = np.array([1, 2, 3, 4])
-
-# arr2 = np.array([[[1], [1], [1], [1]],
-#                  [[2], [2], [2], [2]],
-#                  [[3], [3], [3], [3]]])
 # print(np.dot(arr1, arr2))
-
+t = np.array([[1], [1], [1], [1]])
+print(t.shape)
+print(np.dot(arr1, t))
 # 2 4 , 3 4 1
 # 30 784, 10 784 1
