@@ -1,7 +1,11 @@
+import torch as t
+from torch import nn
+from torch.utils.data import DataLoader
+
 import numpy as np
 from tensorflow.keras.datasets import mnist
 import random
-from utils import ReLU, Sigmoid, cost_function, loss_function, ReLU_prime, Sigmoid_prime, simple_loss_function, convert_one_hot
+from utils import ReLU, Sigmoid, cost_function, loss_function, ReLU_prime, Sigmoid_prime, simple_loss_function, convert_one_hot, softmax, eps
 
 N_TRAIN_SAMPLES = 5000
 # N_TRAIN_SAMPLES = 50000
@@ -19,8 +23,8 @@ test_data = [(tx, ty) for tx, ty in zip(train_x[N_TRAIN_SAMPLES:N_TRAIN_SAMPLES+
 valid_data = [(vx / 255, vy) for vx, vy in zip(test_x[:N_VALID_SAMPLES, :, :],test_y[:N_VALID_SAMPLES])]
 
 NN_ARCHITECTURE = [
-    {"input_dim": 784, "output_dim": 30, "activation": "relu"},
-    {"input_dim": 30, "output_dim": 10, "activation": "relu"},
+    {"input_dim": 784, "output_dim": 64, "activation_fn": Sigmoid},
+    {"input_dim": 64, "output_dim": 10, "activation_fn": softmax},
 ]
 
 def init_layers(nn_architecture, seed = None):
@@ -35,15 +39,16 @@ def init_layers(nn_architecture, seed = None):
         b = np.random.randn(arch["output_dim"], 1)
         weights.append(w)
         biases.append(b)
-    return weights, biases
+        activation_fns.append(arch['activation_fn'])
+    return weights, biases, activation_fns
 
-def full_forward_propagation(images, weights, biases, activation_fn):
+def full_forward_propagation(images, weights, biases, activation_fns):
     zs = []
     activations = []
     activations.append(images)
 
     a = images
-    for w,b in zip(weights, biases):
+    for w, b, activation_fn in zip(weights, biases, activation_fns):
         z = np.matmul(w, a) + b
         zs.append(z)
         a = activation_fn(z)
@@ -55,22 +60,15 @@ def backprop(predict, targets, zs, activations, weights, biases, nn_architecture
     nabla_b = [np.zeros(b.shape) for b in biases]
 
     targets = np.array(list(map(convert_one_hot, targets)))
-    # print(targets.shape)
 
     delta = simple_loss_function(predict, targets)
-    # delta = loss_function(predict, targets) * Sigmoid_prime(zs[-1])
-    # delta = loss_function(predict, targets) * ReLU_prime(zs[-1])
-    
+
     nabla_b[-1] = np.sum(delta , axis=0)
     nabla_w[-1] = np.sum(np.matmul(delta, np.transpose(activations[-2], (0,2,1))) , axis=0) 
 
 
     for l in range(2, len(nn_architecture) + 1):
-        z = zs[-l]
-        # sp = Sigmoid_prime(z)
-
         delta = np.matmul(weights[-l+1].transpose(), delta) 
-        # delta = np.matmul(weights[-l+1].transpose(), delta) * sp
 
         nabla_b[-l] = np.sum(delta, axis=0)
         nabla_w[-l] = np.sum(np.matmul(delta, np.transpose(activations[-l-1], (0,2,1))), axis=0)
@@ -78,25 +76,35 @@ def backprop(predict, targets, zs, activations, weights, biases, nn_architecture
     return nabla_b, nabla_w
         
 def step(weights, biases, nabla_b, nabla_w, lr, batch_size):
-    nweights = [(1-lr*(0.05 / batch_size)) * w - (lr / batch_size) * nw for w, nw in zip(weights, nabla_w)]
+    # (1-lr*(0.05 / batch_size)) *
+    nweights = [w - (lr / batch_size) * nw for w, nw in zip(weights, nabla_w)]
     nbiases = [b - (lr / batch_size) * nb for b, nb in zip(biases, nabla_b)]
     return nweights, nbiases
 
-def feedforward(activation, weights, biases):
-    for w, b in zip(weights, biases):
-        activation = Sigmoid(np.dot(w, activation) + b)
+def feedforward(activation, weights, biases, activation_fns):
+    for w, b, af in zip(weights, biases, activation_fns):
+        activation = af(np.dot(w, activation) + b)
     return activation
 
-def clac_accuracy(data, weights, biases):
-    results = [(np.argmax(feedforward(x.reshape(784, 1), weights, biases)), y)
+def clac_accuracy(data, weights, biases, activation_fns):
+    results = [(np.argmax(feedforward(x.reshape(784, 1), weights, biases, activation_fns)), y)
                         for (x, y) in data]
     return sum(int(x == y) for (x, y) in results)
 
+def softmax_cross_entropy(data, weights, biases, activation_fns):
+    n = len(data)
+    cost = 0
+    for x, y in data:
+        x = feedforward(x.reshape(784, 1), weights, biases, activation_fns)
+        y = convert_one_hot(y)
+        cost += - np.sum(y * np.log(np.clip(x, eps, 1.))) / n 
+    return cost
+
 def sgd(train_data, test_data, valid_data, nn_architecture, epochs, lr, activation_fn, batch_size=10):
-    weights, biases = init_layers(nn_architecture)
+    weights, biases, activation_fns = init_layers(nn_architecture)
 
     for epoch in range(epochs):
-        random.shuffle(train_data)
+        # random.shuffle(train_data)
         mini_batches = [train_data[k: k + batch_size] for k in range(0,N_TRAIN_SAMPLES,batch_size)]
         print(f"Epoch {epoch} has started")
 
@@ -108,7 +116,7 @@ def sgd(train_data, test_data, valid_data, nn_architecture, epochs, lr, activati
             targets = np.array([target for _, target in mini_batch])
 
             # feed forward
-            predict, zs, activations = full_forward_propagation(images, weights, biases, activation_fn)
+            predict, zs, activations = full_forward_propagation(images, weights, biases, activation_fns)
 
             # backward prop
             nabla_b, nabla_w = backprop(predict, targets, zs, activations, weights, biases, nn_architecture)
@@ -116,14 +124,63 @@ def sgd(train_data, test_data, valid_data, nn_architecture, epochs, lr, activati
             # update
             weights, biases = step(weights, biases, nabla_b, nabla_w, lr, batch_size)
 
-        result = clac_accuracy(valid_data, weights, biases)
+        result = clac_accuracy(valid_data, weights, biases, activation_fns)
         print(f"corrections: {result} / {N_VALID_SAMPLES}")
         print(f"accuracy: {result / N_VALID_SAMPLES}")
-        # cost = cost_function(predict, valid_targets) / N_VALID_SAMPLES
-    # print(f"cost: {cost}")
+        cost = softmax_cross_entropy(train_data, weights, biases, activation_fns) / N_VALID_SAMPLES
+        print(f"cost: {cost}")
 
 # apply softmax and ensure dims stay same
     
-sgd(train_data , test_data, valid_data, NN_ARCHITECTURE, 10, 0.005, Sigmoid, batch_size=10)
+# sgd(train_data , test_data, valid_data, NN_ARCHITECTURE, 2, 0.05, Sigmoid, batch_size=10)
 
+
+# pytorch implementation
+
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+        
+        self.fc = nn.Sequential(
+            nn.Linear(784, 64),
+            nn.Sigmoid(),
+            nn.Linear(64, 10),
+            nn.Softmax(dim=1)
+        )
+
+    def forward(self, x):
+        x = self.fc(x)
+        return x
+
+batch_size = 10
+
+model = Model()
+opt = t.optim.SGD(model.parameters(), lr=0.05)
+epochs = 2
+loss_fn = nn.CrossEntropyLoss()
+
+for epoch in range(epochs):
+    print("Epoch: ", epoch)
+    torch_data = DataLoader(train_data, batch_size=batch_size, shuffle=False, )
+    torch_valids = DataLoader(valid_data, batch_size=N_VALID_SAMPLES, shuffle=False)
+    for input, target in torch_data:
+        input = input.view(batch_size, -1).float()
+        opt.zero_grad()
+        output = model(input)
+        loss = loss_fn(output, target)
+        print(loss)
+        loss.backward()
+        opt.step()
+    with t.no_grad(): 
+        for input, target in torch_valids:
+            input = input.view(N_VALID_SAMPLES, -1).float()
+            output = model(input)
+            _, predicted = t.max(output.data, 1)
+            total_correct = (predicted == target).sum().item()
+            print(f"{total_correct} / {N_VALID_SAMPLES}")
+            
+    
+
+    
 # print(train_data[0][0])
