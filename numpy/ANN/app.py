@@ -113,7 +113,7 @@ def softmax_cross_entropy(data, weights, biases, activation_fns):
         # print(x)
         # print(y)
         # print(x * y)
-        cost += - np.sum(y * np.log(np.clip(x, eps, 1.))) / N_VALID_SAMPLES
+        cost += - np.sum(y * np.log(np.clip(x, eps, 1.))) / N_TRAIN_SAMPLES
         # print(cost)
 
     return cost
@@ -174,7 +174,8 @@ class Model(nn.Module):
             nn.Sigmoid(),
             nn.Linear(64, 10),
         )
-        self.softmax = nn.Softmax(dim=1)
+        # self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
         x = self.fc(x)
@@ -189,8 +190,9 @@ batch_size = 10
 
 model = Model()
 opt = t.optim.SGD(model.parameters(), lr=0.05)
-epochs = 2
-loss_fn = nn.CrossEntropyLoss()
+epochs = 10
+# loss_fn = nn.CrossEntropyLoss()
+loss_fn = nn.NLLLoss()
 
 for epoch in range(epochs):
     print("Epoch: ", epoch)
