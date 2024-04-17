@@ -74,9 +74,12 @@ y2 = np.array([[[[1,1]], [[2,2]],[[3,3]]],[[[4,4]],[[5,5]],[[6,6]]],[[[7,7]],[[8
 
 y3 = np.array([[[[1,1],[1,1]], [[2,2],[2,2]],[[3,3],[3,3]]],[[[4,4],[4,4]],[[5,5],[5,5]],[[6,6],[6,6]]],[[[7,7],[7,7]],[[8,8],[8,8]],[[9,9],[9,9]]]])
 
-print(y1.shape, x.shape)
-# print(x[:,0:3,0:3,:] * y1)
-print(x[:,0:3,0:3,:, np.newaxis] * y1[np.newaxis,:,:,:])
+print("shape")
+print(x.shape, y1.shape)
+print(x[:,0:3,0:3,:, np.newaxis].shape, y1[np.newaxis,:,:,:].shape)
+print("resulting shape")
+print((x[:,0:3,0:3,:] * y1).shape)
+print((x[:,0:3,0:3,:, np.newaxis] * y1[np.newaxis,:,:,:]).shape)
 
 # print(np.expand_dims(x, axis=3).shape)
 # print(x)
