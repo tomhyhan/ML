@@ -35,8 +35,46 @@ class ConvLayer2D:
         h_f, w_f, c_f, n_f = self.w.shape
         pad = self.calculate_pad_dims()
         a_prev_pad = self.pad(array=a_prev, pad=pad)
+        output = np.zeros(a_prev_pad.shape)
         
+        for i in range(h_out):
+            for j in range(w_out):
+                h_start = i * self.stride
+                h_end = i + h_f
+                w_start = j * self.stride
+                w_end = j + w_f
+                
+                output[:, i, j, :] = np.sum(
+                    a_prev_pad[:,h_start:h_end,w_start:w_end,:,np.newaxis] * self.w[np.newaxis,:,:,:],
+                    axis=(1, 2, 3)
+                ) 
+
+        return output + self.b
+                
+    def backward_pass(self, da_curr):
+        _, h_out, w_out, _ = da_curr
+        _, h_in, w_in, _ = self.a_prev
+        h_f, w_f, _, _ = self.w
+        pad = self.calculate_pad_dims()
+        a_prev_pad = self.pad(self.a_prev, pad)
+        output = np.zeros(a_prev_pad)
         
+        self.db = np.sum(da_curr, axis=(0,1,2))
+        self.dw = np.zeros_like(self.w)
+        
+        for i in range(h_out):
+            for j in range(w_out):
+                h_start = i * self.stride
+                h_end = h_start + h_f
+                w_start = j * self.stride
+                w_end = w_start + w_f
+                # print out the shape
+                output[:, h_start:h_end, w_start:w_end, :] += np.sum(
+                    self.w[np.newaxis,:,:,:] * da_curr[:,i:i+1,j:j+1,np.newaxis, :], axis=4
+                )
+                
+                self.dw += np.sum()
+                
     def pad(self, array, pad):
         return np.pad(
             array=array,
@@ -75,12 +113,24 @@ y2 = np.array([[[[1,1]], [[2,2]],[[3,3]]],[[[4,4]],[[5,5]],[[6,6]]],[[[7,7]],[[8
 y3 = np.array([[[[1,1],[1,1]], [[2,2],[2,2]],[[3,3],[3,3]]],[[[4,4],[4,4]],[[5,5],[5,5]],[[6,6],[6,6]]],[[[7,7],[7,7]],[[8,8],[8,8]],[[9,9],[9,9]]]])
 
 print("shape")
-print(x.shape, y1.shape)
-print(x[:,0:3,0:3,:, np.newaxis].shape, y1[np.newaxis,:,:,:].shape)
-print("resulting shape")
-print((x[:,0:3,0:3,:] * y1).shape)
-print((x[:,0:3,0:3,:, np.newaxis] * y1[np.newaxis,:,:,:]).shape)
+# print(x)
+print(x.sum(axis=(1,2,3)))
+print(x.sum(axis=(0,1,2)))
+print(x.sum(axis=(2, 3)))
+print("--")
+print(x)
+# print(x.shape, y1.shape)
+# print(x[:,0:3,0:3,:, np.newaxis].shape, y1[np.newaxis,:,:,:].shape)
+# print("resulting shape")
+# print((x[:,0:3,0:3,:] * y1).shape)
+# r = (x[:,0:3,0:3,:, np.newaxis] * y1[np.newaxis,:,:,:])
+# print(r)
+# print(r.shape)
+# print(np.sum(r, axis=(1,2,3)))
 
+
+# x = np.array([[[[1,2,3],[1,2,3],[1,2,3]]]])
+# print(x * x)
 # print(np.expand_dims(x, axis=3).shape)
 # print(x)
 # print(np.expand_dims(x, axis=3))
