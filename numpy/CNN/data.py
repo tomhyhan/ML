@@ -34,3 +34,11 @@ def load_data():
 
     # print(valid_data.shape)
     # print(valid_target.shape)
+a_prev = np.random.rand(2, 4, 4, 3)
+w = np.random.rand(3, 3, 3, 2)
+stride = 1
+conv2d_backward = Conv2DBackward(a_prev, w, stride)
+da_curr = np.random.rand(2, 2, 2, 2)
+output = conv2d_backward.backward_pass(da_curr)
+print(a_prev.shape)
+print(output.shape)
