@@ -3,14 +3,14 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 import numpy as np
-from tensorflow.keras.datasets import mnist
+from tensorflow.keras.datasets import mnist, fashion_mnist
 import random
 
 ((train_x, train_y), (test_x, test_y)) = mnist.load_data()
 
 N_TRAIN_DATA = 5000
 N_TEST_DATA = 1000
-N_VALID_DATA = 250
+N_VALID_DATA = 500
 N = 28 * 28
 
 eps = 10 ** -8
@@ -34,8 +34,8 @@ def Softmax(z):
     sm = e / np.sum(e, axis=1, keepdims=True)
     return sm
     
-def cross_entropy_loss(a, y):
-    return - np.sum(y * np.log(np.clip(a, eps, 1))) / N_TRAIN_DATA
+def cross_entropy_loss(a, y, lmbda, layers, params):
+    return - np.sum(y * np.log(np.clip(a, eps, 1))) / N_TRAIN_DATA + 0.5*(lmbda/N_TRAIN_DATA)*sum(np.linalg.norm(params[f"w{i+1}"])**2 for i in range(len(layers)))
 
 def cross_entropy_backward(a, y):
     return a - y 
@@ -56,8 +56,8 @@ def init_weights(layers):
 
     for i, layer in enumerate(layers):
         layer_i = i + 1
-        params[f"w{layer_i}"] = np.zeros((layer["out"], layer["in"]))
-        params[f"b{layer_i}"] = np.zeros((layer["out"], 1))
+        params[f"w{layer_i}"] = np.random.randn(layer["out"], layer["in"]) / np.sqrt(layer["in"])
+        params[f"b{layer_i}"] = np.random.randn(layer["out"], 1)
         params[f"activation{layer_i}"] = layer["activation"]
         
     return params
@@ -65,19 +65,18 @@ def init_weights(layers):
 
 def forward_pass(images, layers, params):
     activations = [images]
-    zs = []
-
     a = images
+    
     for l in range(len(layers)):
         l = l + 1
         w, b, activation_fn = params[f"w{l}"], params[f"b{l}"], params[f"activation{l}"]
         z = np.matmul(w, a) + b 
-        zs.append(z)
         a = activation_fn(z)
         activations.append(a)
-    return a, zs, activations
+        
+    return a, activations
 
-def backprop(images, targets, params, layers, a, zs, activations):
+def backprop(targets, params, layers, a, activations):
     nabla_w = [np.zeros(params[f"w{i+1}"].shape) for i in range(len(layers))]
     nabla_b = [np.zeros(params[f"b{i+1}"].shape) for i in range(len(layers))]
 
@@ -100,7 +99,8 @@ def backprop(images, targets, params, layers, a, zs, activations):
 
 def step(nabla_w, nabla_b, params, layers, lr, lmbda, batch_size):
     for i in range(1, len(layers)+1):
-        params[f"w{i}"] -= lr / batch_size * nabla_w[i-1]
+        params[f"w{i}"] = (1 - (lr * lmbda / batch_size)) * params[f"w{i}"] - lr / batch_size * nabla_w[i-1]
+        # params[f"w{i}"] = params[f"w{i}"] - lr / batch_size * nabla_w[i-1]
         params[f"b{i}"] -= lr / batch_size * nabla_b[i-1]
 
 def sgd(train_data, test_data, valid_data, layers, lr=0.05, lmbda=0.5, epochs=3, batch_size=10):
@@ -116,27 +116,30 @@ def sgd(train_data, test_data, valid_data, layers, lr=0.05, lmbda=0.5, epochs=3,
             images = np.array([x for x, _ in mini_batch])
             targets = np.array([y for _, y in mini_batch])
 
-            a, zs, activations = forward_pass(images, layers, params)
+            a, activations = forward_pass(images, layers, params)
 
-            nabla_w, nabla_b = backprop(images, targets, params, layers, a, zs, activations)
+            nabla_w, nabla_b = backprop(targets, params, layers, a, activations)
         
             step(nabla_w, nabla_b, params, layers, lr, lmbda, batch_size)
             
         images = np.array([x for x, _ in valid_data])
         targets = np.array([y for _, y in valid_data])
-        a, _, _ = forward_pass(images, layers, params)
-        result = np.argmax(a, axis=1)
-        print(result.reshape(N_VALID_DATA))
-        print(targets.shape)
-        print((result == targets))
+        a, _ = forward_pass(images, layers, params)
+        result = np.argmax(a, axis=1).reshape(N_VALID_DATA)
+        corrects = np.sum(result == targets)
+        print(f"Number of corrections: {corrects} / {N_VALID_DATA}")
+        print(f"Accuracy: {corrects / N_VALID_DATA}")
+
+        images = np.array([x for x, _ in train_data])
+        targets = np.array([y for _, y in train_data])
+        a, _ = forward_pass(images, layers, params)
+        cost = cross_entropy_loss(a, targets, lmbda, layers, params)
+        print(f"cost: {cost}")
+
 lr = 0.05
-lmbda = 0.5
-epochs = 1
+lmbda = 0.001
+epochs = 10
 batch_size = 10
 
-# sgd(train_data, test_data, valid_data, LAYERS, lr=0.05, lmbda=0.5, epochs=epochs, batch_size=batch_size)
+sgd(train_data, test_data, valid_data, LAYERS, lr=0.05, lmbda=lmbda, epochs=epochs, batch_size=batch_size)
 
-x = np.array([1,2,3,4,5])
-y = np.array([1,2,6,4,7])
-
-print(np.sum(x == y))
