@@ -1,6 +1,6 @@
 from tensorflow.keras.datasets import fashion_mnist
 import numpy as np
-from utils import convert_one_hot
+from utils.core import convert_one_hot
 
 
 N_TRAIN_SAMPLES = 5000

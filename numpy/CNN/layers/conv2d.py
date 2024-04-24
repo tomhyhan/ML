@@ -1,5 +1,5 @@
 import numpy as np
-from base import Layer
+from .base import Layer
 class ConvLayer2D(Layer):
     def __init__(self, w, b, padding, stride):
         self.w = w
@@ -34,13 +34,11 @@ class ConvLayer2D(Layer):
         self.b = b    
     
     def forward_pass(self, a_prev, is_training):
-        """
-        
-        """
         self.a_prev = np.copy(a_prev)
         n, h_in, w_in, _ = a_prev.shape
         output_shape = self.caculate_output_dims(a_prev.shape)
         n, h_out, w_out, _ = output_shape
+
         h_f, w_f, c, n_f = self.w.shape
         pad = self.calculate_pad_dims()
         a_prev_pad = self.pad(a_prev, pad)
@@ -52,9 +50,10 @@ class ConvLayer2D(Layer):
                 h_end = h_start + h_f
                 w_start = j * self.stride
                 w_end = w_start + w_f
-                
+
+
                 output[:,i,j,:] += np.sum(
-                    a_prev_pad[:,h_start: h_end, w_start:w_end,:,:,np.newaxis] * self.w[np.newaxis,:,:,:,:], axis=(1,2,3) 
+                    a_prev_pad[:,h_start: h_end, w_start:w_end,:,np.newaxis] * self.w[np.newaxis,:,:,:,:], axis=(1,2,3) 
                 )
         
         return output + self.b
@@ -73,6 +72,7 @@ class ConvLayer2D(Layer):
         c - number of channels of the input volume
         n_f - number of filters in filter volume
         """
+        print("da_curr", da_curr.shape)
         n, h_out, w_out, _ = da_curr.shape
         n, h_in, w_in, _ = self.a_prev.shape
         h_f, w_f, _, n_f = self.w.shape
@@ -109,13 +109,13 @@ class ConvLayer2D(Layer):
     def pad(self, array, pad):
         return np.pad(
             array=array,
-            pad_width=((0,0), (pad[0],pad[0]), (pad[1], pad[1], (0,0))),
+            pad_width=((0,0), (pad[0],pad[0]), (pad[1], pad[1]), (0,0)),
             mode="edge"
         )
     
     def caculate_output_dims(self, input_dims):
         n, h_in, w_in, _ = input_dims
-        h_f, w_f, c, n_f = self.w
+        h_f, w_f, c, n_f = self.w.shape
         
         if self.padding == "same":
             return n, h_in, w_in, n_f
@@ -125,7 +125,7 @@ class ConvLayer2D(Layer):
             return n, h_out, w_out, n_f
     
     def calculate_pad_dims(self):
-        h_f, w_f, _, _ = self.w
+        h_f, w_f, _, _ = self.w.shape
 
         if self.padding == "same":
             h = (h_f - 1) // 2
@@ -133,44 +133,4 @@ class ConvLayer2D(Layer):
             return h, w
         elif self.padding == "valid":
             return 0,0
-
-x = np.expand_dims(np.array([[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]], [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16]]]), axis=3)
-
-# print(x.shape)
-print(x.sum(axis=0))
-# y1 = np.array([[[[1]], [[2]],[[3]]],[[[4]],[[5]],[[6]]],[[[7]],[[8]],[[9]]]])
-
-# y2 = np.array([[[[1,1]], [[2,2]],[[3,3]]],[[[4,4]],[[5,5]],[[6,6]]],[[[7,7]],[[8,8]],[[9,9]]]])
-
-# y3 = np.array([[[[1,1],[1,1]], [[2,2],[2,2]],[[3,3],[3,3]]],[[[4,4],[4,4]],[[5,5],[5,5]],[[6,6],[6,6]]],[[[7,7],[7,7]],[[8,8],[8,8]],[[9,9],[9,9]]]])
-
-# print("shape")
-# # print(x)
-# print(x.sum(axis=(1,2,3)))
-# print(x.sum(axis=(0,1,2)))
-# print(x.sum(axis=(2, 3)))
-# print("--")
-# print(x)
-# print(x.shape, y1.shape)
-# print(x[:,0:3,0:3,:, np.newaxis].shape, y1[np.newaxis,:,:,:].shape)
-# print("resulting shape")
-# print((x[:,0:3,0:3,:] * y1).shape)
-# r = (x[:,0:3,0:3,:, np.newaxis] * y1[np.newaxis,:,:,:])
-# print(r)
-# print(r.shape)
-# print(np.sum(r, axis=(1,2,3)))
-
-
-# x = np.array([[[[1,2,3],[1,2,3],[1,2,3]]]])
-# print(x * x)
-# print(np.expand_dims(x, axis=3).shape)
-# print(x)
-# print(np.expand_dims(x, axis=3))
-# print(y)
-# print(x * y)
-# print(x[:,:, np.newaxis] * y[np.newaxis, : ])
-# print(x[:,:, np.newaxis])
-# print(y[np.newaxis, : ])
-# print(y[np.newaxis, :, : ])
-# print(np.pad(x, pad_width=((1,1),(1,1)), mode="edge"))
 
