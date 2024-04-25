@@ -1,4 +1,4 @@
-from tensorflow.keras.datasets import fashion_mnist
+from tensorflow.keras.datasets import mnist
 import numpy as np
 from utils.core import convert_one_hot
 
@@ -13,13 +13,12 @@ def convert_x(t_x):
     return np.array([x.reshape(IMAGE_SIZE,IMAGE_SIZE,1) / 255 for x in t_x])
 
 def load_data():
-    ((train_x, train_y), (test_x, test_y))  = fashion_mnist.load_data()
+    ((train_x, train_y), (test_x, test_y))  = mnist.load_data()
 
     train_data = convert_x(train_x[:N_TRAIN_SAMPLES])
     train_target = convert_one_hot(train_y[:N_TRAIN_SAMPLES], N_CLASSES)
 
     test_data = convert_x(train_x[N_TRAIN_SAMPLES:N_TRAIN_SAMPLES+N_TEST_SAMPLE]) 
-    
     test_target = convert_one_hot(train_y[N_TRAIN_SAMPLES:N_TRAIN_SAMPLES+N_TEST_SAMPLE], N_CLASSES)
 
     valid_data = convert_x(test_x[:N_VALID_SAMPLES])

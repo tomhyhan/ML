@@ -12,23 +12,27 @@ class Model:
 
             print(f"Starting Epoch: {epoch}")
             for idx, (x, y) in enumerate(mini_batches):
+                if idx % 1000 == 0:
+                    print("images trained: ", idx * batch_size)
                 y_hat = self.forward_pass(x, training=True)
                 activation = y_hat - y
                 self.backward_pass(activation)
                 self.update(epoch)
-        
-        y_hat = self.forward_pass(test_x)
-        accuracy = softmax_accuracy(y_hat, test_y)
-        print(f"accuracy: {accuracy} / {len(test_y)}")
+                # break
+            y_hat = self.forward_pass(test_x, training=False)
+            accuracy = softmax_accuracy(y_hat, test_y)
+            print(f"accuracy: {accuracy} / {len(test_y)}")
             
     def forward_pass(self, x, training):
-        for layer in self.layers:
-            x = layer.forward_pass(x, training)
-        return x 
+        activation = x
+        for idx, layer in enumerate(self.layers):
+            activation = layer.forward_pass(activation, training)
+        return activation
 
-    def backward_pass(self, da_curr):
+    def backward_pass(self, x):
+        activation = x
         for layer in reversed(self.layers):
-            da_curr = layer.backward_pass(da_curr)
+            activation = layer.backward_pass(da_curr=activation)
 
     def update(self, epoch):
         self.optimizer.update(self.layers, epoch)

@@ -7,22 +7,24 @@ from layers.fc import FullyConnectedLayer
 from activation.softmax import SoftmaxLayer
 from optimizer.adam import Adam
 from model.model import Model
+from model.sequential import SequentialModel
+import numpy as np
 
 train_data, train_target, test_data, test_target, valid_data, valid_target = load_data()
 
-# conv layer, fc layer, relu, softmax
 LAYERS = [
-    ConvLayer2D.initialize(32, (3,3,1), padding="same", stride=1),
-    ReLULayer(),
-    MaxPoolLayer((2,2), stride=2),
     FlattenLayer(),
-    FullyConnectedLayer.intialize(14 * 14 * 32, 10),
+    FullyConnectedLayer.initialize(28 * 28, 64),
+    ReLULayer(),
+    FullyConnectedLayer.initialize(64, 10),
     SoftmaxLayer()
 ]
 
-optimizer = Adam(lr=0.001)
+# print(train_data.shape, train_target.shape, valid_data.shape, valid_target.shape)
+optimizer = Adam(lr=0.003)
 
+# model = Model(layers=LAYERS, optimizer=optimizer)
 model = Model(layers=LAYERS, optimizer=optimizer)
 
-model.train(train_data, train_target, valid_data, valid_target, 10, 1)
+model.train(train_data, train_target, valid_data, valid_target, 1, 10)
 

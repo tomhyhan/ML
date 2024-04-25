@@ -3,12 +3,13 @@ import numpy as np
 
 class FlattenLayer(Layer):
     def __init__(self):
-        self.shape = None
+        self.shape = ()
         
-    def forward_pass(self, a_prev, is_training):
+    def forward_pass(self, a_prev, training):
         self.shape = a_prev.shape
-        return np.ravel(a_prev).reshape(self.shape[0], -1)
+        # print(np.ravel(a_prev).reshape(self.shape[0], -1).shape)
+        return np.ravel(a_prev).reshape(a_prev.shape[0], -1)
     
     def backward_pass(self, da_curr):
-        print("flatten: ", da_curr.shape)
+        # print("flatten: ", da_curr.shape)
         return da_curr.reshape(self.shape)

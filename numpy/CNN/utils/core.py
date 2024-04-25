@@ -1,23 +1,23 @@
 import numpy as np
 
 def convert_one_hot(y, N_CLASSES):
-    n_y = y.size
-    one_hot = np.zeros((n_y,N_CLASSES))
-    one_hot[np.arange(n_y), y] = 1
-    return one_hot
+    one_hot_matrix = np.zeros((y.size, y.max() + 1))
+    one_hot_matrix[np.arange(y.size), y] = 1
+    return one_hot_matrix
 
 def generate_batches(x : np.array , y: np.array, batch_size: int):
-    # print(x.shape)
     for i in range(0, x.shape[0], batch_size):
-        # print(i, i+batch_size)
-        # print(np.min(np.arange(0, 10)))
-        # print(np.arange(i, np.min(i+batch_size, x.shape[0])))
-        yield(
-            x.take(indices=range(i, 
-            min(i+batch_size, x.shape[0])), axis=0),
-            y.take(indices=range(i, 
-            min(i+batch_size, y.shape[0])), axis=0)
+        yield (
+            x.take(indices=range(
+                i, min(i + batch_size, x.shape[0])), axis=0),
+            y.take(indices=range(
+                i, min(i + batch_size, y.shape[0])), axis=0)
         )
 
 def softmax_accuracy(y_hat, y):
-    return np.sum(np.argmax(y_hat, axis=1) == y)
+    class_idx = np.argmax(y_hat, axis=1)
+    one_hot_matrix = np.zeros_like(y_hat)
+    one_hot_matrix[np.arange(y_hat.shape[0]), class_idx] = 1
+    print(one_hot_matrix)
+    y_hat = one_hot_matrix
+    return (y_hat == y).all(axis=1).mean()

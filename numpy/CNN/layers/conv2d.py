@@ -72,7 +72,7 @@ class ConvLayer2D(Layer):
         c - number of channels of the input volume
         n_f - number of filters in filter volume
         """
-        print("da_curr", da_curr.shape)
+        # print("da_curr", da_curr.shape)
         n, h_out, w_out, _ = da_curr.shape
         n, h_in, w_in, _ = self.a_prev.shape
         h_f, w_f, _, n_f = self.w.shape

@@ -47,7 +47,7 @@ test_data = [(reshape(x), y) for x, y in zip(train_x[N_TRAIN_DATA:N_TRAIN_DATA +
 valid_data = [(reshape(x), y) for x, y in zip(train_x[:N_VALID_DATA], train_y[:N_VALID_DATA])]
 
 LAYERS = [
-    {"in": 784, "out": 64, "activation": Sigmoid},
+    {"in": 784, "out": 64, "activation": ReLU},
     {"in": 64, "out": 10, "activation": Softmax},
 ]
 
@@ -138,7 +138,7 @@ def sgd(train_data, test_data, valid_data, layers, lr=0.05, lmbda=0.5, epochs=3,
 
 lr = 0.05
 lmbda = 0.001
-epochs = 10
+epochs = 3
 batch_size = 10
 
 sgd(train_data, test_data, valid_data, LAYERS, lr=0.05, lmbda=lmbda, epochs=epochs, batch_size=batch_size)

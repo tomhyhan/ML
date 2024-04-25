@@ -31,11 +31,11 @@ class MaxPoolLayer(Layer):
 
     
     def backward_pass(self, da_curr):
-        print("pooling backward", da_curr.shape)
+        # print("pooling backward", da_curr.shape)
         n, h_out, w_out, n_f = da_curr.shape
         output = np.zeros_like(self.a_prev)
         h_p, w_p = self.pool_size
-        print(output.shape)
+        # print(output.shape)
         
         for i in range(h_out):
             for j in range(w_out):

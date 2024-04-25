@@ -1,11 +1,12 @@
 import numpy as np
+from .base import Layer
 
-class ReLULayer:
+class ReLULayer(Layer):
     def __init__(self):
         self.z = None
         
-    def forward_pass(self, a_prev, is_training):
-        self.z = np.maximum(0, a_prev)
+    def forward_pass(self, a_prev, training):
+        self.z = np.maximum(a_prev, 0 )
         return self.z
     
     def backward_pass(self, da_curr):

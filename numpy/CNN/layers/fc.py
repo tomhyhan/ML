@@ -9,14 +9,14 @@ class FullyConnectedLayer(Layer):
         self.dw, self.db = None, None
 
     @classmethod
-    def intialize(cls, n_in, n_out):
+    def initialize(cls, n_out, n_in):
         # w - (10, 100)  
-        w = np.random.randn(n_out, n_in) / np.sqrt(n_in)
-        b = np.random.randn(1, n_out)
+        w = np.random.randn(n_in, n_out) * 0.1
+        b = np.random.randn(1, n_in) * 0.1
         return cls(w, b)
     
     @property
-    def weight(self):
+    def weights(self):
         return self.w, self.b
     
     @property
@@ -31,8 +31,6 @@ class FullyConnectedLayer(Layer):
         
     def forward_pass(self, a_prev, training):
         self.a_prev = np.copy(a_prev)
-        print(self.w.shape)
-        print(a_prev.shape)
         z = np.dot(a_prev, self.w.T) + self.b
         return z 
     
