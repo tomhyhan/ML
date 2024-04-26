@@ -12,7 +12,7 @@ class Model:
 
             print(f"Starting Epoch: {epoch}")
             for idx, (x, y) in enumerate(mini_batches):
-                if idx % 1000 == 0:
+                if idx % 10 == 0:
                     print("images trained: ", idx * batch_size)
                 y_hat = self.forward_pass(x, training=True)
                 activation = y_hat - y
@@ -21,7 +21,7 @@ class Model:
                 # break
             y_hat = self.forward_pass(test_x, training=False)
             accuracy = softmax_accuracy(y_hat, test_y)
-            print(f"accuracy: {accuracy} / {len(test_y)}")
+            print(f"accuracy: {accuracy}")
             
     def forward_pass(self, x, training):
         activation = x

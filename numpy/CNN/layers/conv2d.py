@@ -1,5 +1,6 @@
 import numpy as np
 from .base import Layer
+
 class ConvLayer2D(Layer):
     def __init__(self, w, b, padding, stride):
         self.w = w
@@ -36,7 +37,7 @@ class ConvLayer2D(Layer):
     def forward_pass(self, a_prev, is_training):
         self.a_prev = np.copy(a_prev)
         n, h_in, w_in, _ = a_prev.shape
-        output_shape = self.caculate_output_dims(a_prev.shape)
+        output_shape = self.calculate_output_dims(a_prev.shape)
         n, h_out, w_out, _ = output_shape
 
         h_f, w_f, c, n_f = self.w.shape
@@ -113,7 +114,7 @@ class ConvLayer2D(Layer):
             mode="edge"
         )
     
-    def caculate_output_dims(self, input_dims):
+    def calculate_output_dims(self, input_dims):
         n, h_in, w_in, _ = input_dims
         h_f, w_f, c, n_f = self.w.shape
         
@@ -133,4 +134,3 @@ class ConvLayer2D(Layer):
             return h, w
         elif self.padding == "valid":
             return 0,0
-

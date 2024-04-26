@@ -18,6 +18,5 @@ def softmax_accuracy(y_hat, y):
     class_idx = np.argmax(y_hat, axis=1)
     one_hot_matrix = np.zeros_like(y_hat)
     one_hot_matrix[np.arange(y_hat.shape[0]), class_idx] = 1
-    print(one_hot_matrix)
     y_hat = one_hot_matrix
     return (y_hat == y).all(axis=1).mean()

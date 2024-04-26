@@ -6,36 +6,23 @@ class Adam:
         self.beta1 = beta1
         self.beta2 = beta2
         self.eps = eps
-        
-        self.cache_v = {}
-        self.cache_s = {}
+
+        self.dv = {}
+        self.ds = {}        
         
     def update(self, layers, t=None):
-        if len(self.cache_s) == 0 or len(self.cache_v) == 0:
-            self.init_cache(layers)
-
-        for idx, layer in enumerate(layers):
-            weights, gradients = layer.weights, layer.gradients
-            if weights is None or gradients is None:
+        if len(self.dv) == 0 or len(self.ds) == 0:
+            self.init_cache()
+        
+        
+        for idx, layer in enumerate(layer):
+            if layer.gradients is None:
                 continue
-
-            (w, b), (dw, db) = weights, gradients
-            dw_key, db_key = Adam.get_cache_keys(idx)
-
-            self.cache_v[dw_key] = self.beta1 * self.cache_v[dw_key] + (1 - self.beta1) * dw
-            self.cache_v[db_key] = self.beta1 * self.cache_v[db_key] + (1 - self.beta1) * db
-
-            self.cache_s[dw_key] = self.beta2 * self.cache_s[dw_key] + (1 - self.beta2) * np.square(dw)
-            self.cache_s[db_key] = self.beta2 * self.cache_s[db_key] + (1 - self.beta2) * np.square(db)
-
-            dw = self.cache_v[dw_key] / (np.sqrt(self.cache_s[dw_key]) + self.eps)
-            db = self.cache_v[db_key] / (np.sqrt(self.cache_s[db_key]) + self.eps)
-
-            layer.set_weights(
-                w=w - self.lr * dw,
-                b=b - self.lr * db
-            )
             
+            dw, db = layer.gradients
+            dw_key, db_key = self.get_cache_keys(idx)
+            
+            vdw = self.beta1 * self.dv[dw_key] + (1 - self.beta1) * dw
             # later test with corrections
             # vdw_correct = self.cache_v[dw_key] / (1 - self.beta1**t)
             # vdb_correct = self.cache_v[db_key] / (1 - self.beta1**t)
@@ -45,19 +32,18 @@ class Adam:
 
 
     def init_cache(self, layers):
+
         for idx, layer in enumerate(layers):
-            gradients = layer.gradients
-            if gradients is None:
-                continue
+            if layer.gradients is None:
+                return None
+            
+            dw, db = layer.gradients
+            dw_key, db_key = self.get_cache_keys(idx)
 
-            dw, db = gradients
-            dw_key, db_key = Adam.get_cache_keys(idx)
-
-            self.cache_v[dw_key] = np.zeros_like(dw)
-            self.cache_v[db_key] = np.zeros_like(db)
-            self.cache_s[dw_key] = np.zeros_like(dw)
-            self.cache_s[db_key] = np.zeros_like(db)
-
+            self.dv[dw_key] = np.zeros_like(dw)
+            self.dv[db_key] = np.zeros_like(db)
+            self.ds[dw_key] = np.zeros_like(dw)
+            self.ds[db_key] = np.zeros_like(db)
 
     @staticmethod
     def get_cache_keys(idx):

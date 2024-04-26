@@ -10,7 +10,8 @@ class ReLULayer(Layer):
         return self.z
     
     def backward_pass(self, da_curr):
-        # try with x > 0 = 1 
         dz = np.array(da_curr, copy=True)
         dz[self.z <= 0] = 0
         return dz
+
+        # return np.where(dz > 0, 1, 0)
