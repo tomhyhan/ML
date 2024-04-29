@@ -6,6 +6,7 @@ from layers.flatten import FlattenLayer
 from layers.fc import FullyConnectedLayer
 from activation.softmax import SoftmaxLayer
 from optimizer.adam import Adam
+# from optimizer.adam3 import Adam
 from model.model import Model
 import numpy as np
 
@@ -22,9 +23,9 @@ LAYERS = [
     SoftmaxLayer()
 ]
 
-optimizer = Adam(lr=0.003)
+optimizer = Adam(lr=0.005)
 
 model = Model(layers=LAYERS, optimizer=optimizer)
 
-model.train(train_data, train_target, valid_data, valid_target, batch_size=64, epochs=1)
+model.train(train_data, train_target, valid_data, valid_target, batch_size=100, epochs=3)
 

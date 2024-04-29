@@ -8,31 +8,29 @@ class Model:
     def train(self, train_x, train_y, test_x, test_y, batch_size, epochs):
 
         for epoch in range(epochs):
-            mini_batches = generate_batches(train_x, train_y, batch_size)
-
             print(f"Starting Epoch: {epoch}")
-            for idx, (x, y) in enumerate(mini_batches):
+            for idx, (batch_x, batch_y) in enumerate(generate_batches(train_x, train_y, batch_size)):
                 if idx % 10 == 0:
-                    print("images trained: ", idx * batch_size)
-                y_hat = self.forward_pass(x, training=True)
-                activation = y_hat - y
-                self.backward_pass(activation)
+                    print(f"{idx * batch_size} images has been trained")
+                activation = self.forward_pass(batch_x, training=True)
+                da_curr = activation - batch_y
+                self.backward_pass(da_curr)
                 self.update(epoch)
-                # break
-            y_hat = self.forward_pass(test_x, training=False)
-            accuracy = softmax_accuracy(y_hat, test_y)
-            print(f"accuracy: {accuracy}")
+
+            prediction = self.forward_pass(test_x, training=False)
+            accuracy = softmax_accuracy(prediction, test_y)
+            print("accuracy: ", accuracy)
             
     def forward_pass(self, x, training):
         activation = x
-        for idx, layer in enumerate(self.layers):
+        for layer in self.layers:
             activation = layer.forward_pass(activation, training)
         return activation
-
+        
     def backward_pass(self, x):
-        activation = x
+        da_curr = x
         for layer in reversed(self.layers):
-            activation = layer.backward_pass(da_curr=activation)
-
+            da_curr = layer.backward_pass(da_curr)
+    
     def update(self, epoch):
         self.optimizer.update(self.layers, epoch)
