@@ -1,54 +1,110 @@
 import torch 
+import random
 
-def compute_numeric_gradient(f, x, dLdf=None, h=1e-7):
+def grad_check_sparse(f, x, dout, analytic_grads, num_checks=10, h=1e-7):
     """
-    Compute the numeric gradient of f at x using a finite differences
-    approximation. We use the centered difference:
-
-    df    f(x + h) - f(x - h)
-    -- ~= -------------------
-    dx           2 * h
-
-    Function can also expand this easily to intermediate layers using the
-    chain rule:
-
-    dL   df   dL
-    -- = -- * --
-    dx   dx   df
-
-    Inputs:
-    - f: A function that inputs a torch tensor and returns a torch scalar
-    - x: A torch tensor giving the point at which to compute the gradient
-    - dLdf: optional upstream gradient for intermediate layers
-    - h: epsilon used in the finite difference calculation
-    Returns:
-    - grad: A tensor of the same shape as x giving the gradient of f at x
+        computes numeric gradient of f at x using h (finite difference).
+        
+        Inputs:
+            f: forward pass function
+            x: torch tensor to compute gradient
+            dout: upstream gradient
+            h: finite differences
+        Outputs:
+            grad: the result of x gradient by finite approximation
     """
-    flat_x = x.contiguous().flatten()
-    grad = torch.zeros_like(x)
-    flat_grad = grad.flatten()
+    x_flat = x.contiguous().flatten()
+    eps = 1e10
 
-    # Initialize upstream gradient to be ones if not provide
-    if dLdf is None:
-        y = f(x)
-        dLdf = torch.ones_like(y)
-    dLdf = dLdf.flatten()
+    if dout is None:
+        z = f(x)
+        dout = torch.ones_like(z)
 
-    # iterate over all indexes in x
-    for i in range(flat_x.shape[0]):
-        oldval = flat_x[i].item()  # Store the original value
-        flat_x[i] = oldval + h  # Increment by h
-        fxph = f(x).flatten()  # Evaluate f(x + h)
-        flat_x[i] = oldval - h  # Decrement by h
-        fxmh = f(x).flatten()  # Evaluate f(x - h)
-        flat_x[i] = oldval  # Restore original value
+    upstream_grad = dout.flatten()
+    analytic_grads = analytic_grads.flatten()
+    
+    for _ in range(num_checks):
+        
+        ix = tuple([random.randrange(m) for m in x_flat.shape])
+        ix = 0
+        old_val = x_flat[ix].item()
+        x_flat[ix] = old_val + h
+        fph = f(x)
 
-        # compute the partial derivative with centered formula
-        dfdxi = (fxph - fxmh) / (2 * h)
+        x_flat[ix] = old_val - h
+        fmh = f(x)
 
-        # use chain rule to compute dLdx
-        flat_grad[i] = dLdf.dot(dfdxi).item()
+        x_flat[ix] = old_val
+        local_grad = (fph.flatten() - fmh.flatten()) / (2 * h)
 
-    # Note that since flat_grad was only a reference to grad,
-    # we can just return the object in the shape of x by returning grad
-    return grad
+        num_grad = torch.dot(upstream_grad, local_grad).item()
+        analytic_grad = analytic_grads[ix]
+        
+        top = abs(num_grad - analytic_grad).item()
+        bot = (abs(num_grad) + abs(analytic_grad)).clamp(min=eps).item()        
+        ix_error = top / bot 
+        msg = "numerical: %f analytic: %f, relative error: %e"
+        print(msg % (num_grad, analytic_grad, ix_error))
+        break
+#       
+    # return downstream_grad
+
+def compute_numeric_gradient(f, x, dout, h=1e-7):
+    """
+        computes numeric gradient of f at x using h (finite difference).
+        
+        Inputs:
+            f: forward pass function
+            x: torch tensor to compute gradient
+            dout: upstream gradient
+            h: finite differences
+        Outputs:
+            grad: the result of x gradient by finite approximation
+    """
+    x_flat = x.contiguous().flatten()
+    downstream_grad = torch.zeros_like(x)
+    downstream_grad_flat = downstream_grad.flatten()
+    
+    if dout is None:
+        z = f(x)
+        dout = torch.ones_like(z)
+
+    upstream_grad = dout.flatten()
+    
+    for i in range(x_flat.shape[0]):
+        old_val = x_flat[i].item()
+        
+        x_flat[i] = old_val + h
+        fph = f(x)
+
+        x_flat[i] = old_val - h
+        fmh = f(x)
+
+        x_flat[i] = old_val
+        local_grad = (fph.flatten() - fmh.flatten()) / (2 * h)
+
+        downstream_grad_flat[i] = torch.dot(upstream_grad, local_grad).item()
+        print("full", torch.dot(upstream_grad, local_grad).item())
+        break
+    return downstream_grad
+
+def rel_error(x,y,eps=1e-10):
+    """
+        compute the relative error between x,y tensor
+        
+                                max_i |x_i - y_i]|
+        rel_error(x, y) = -------------------------------
+                        max_i |x_i| + max_i |y_i| + eps
+
+        Inputs:
+            x: Tensor
+            y: Tensor
+            eps: Small constant value for numeric stability
+        Outputs:
+            error: Scalar that compute the relative error between x and y
+    """
+    
+    top = (x - y).abs().max().item()
+    bot = (x.abs() + y.abs()).clamp(min=eps).max().item()
+    error = top / bot
+    return error
