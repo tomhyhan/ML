@@ -1,5 +1,5 @@
 from conv import Convolution
-from grads import compute_numeric_gradient, rel_error
+from grads import compute_numeric_gradient, rel_error, grad_check_sparse
 import torch
 
 
@@ -23,10 +23,14 @@ def test_gradients():
     dx, dw, db = Convolution.backward(dout, cache)
     
     fx = lambda X: Convolution.forward(X, filter, b, padding, stride)[0]
-    dx_num = compute_numeric_gradient(fx, x, dout)
     
-    dx_error = rel_error(dx, dx_num)
-    print("dx_error", dx_error)
+    
+    grad_check_sparse(fx, x, dout, dx)
+    
+    # dx_num = compute_numeric_gradient(fx, x, dout)
+    
+    # dx_error = rel_error(dx, dx_num)
+    # print("dx_error", dx_error)
 
     
 if __name__ == "__main__":

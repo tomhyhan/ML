@@ -1,6 +1,6 @@
 import torch 
 import random
-
+        
 def grad_check_sparse(f, x, dout, analytic_grads, num_checks=10, h=1e-7):
     """
         computes numeric gradient of f at x using h (finite difference).
@@ -14,7 +14,7 @@ def grad_check_sparse(f, x, dout, analytic_grads, num_checks=10, h=1e-7):
             grad: the result of x gradient by finite approximation
     """
     x_flat = x.contiguous().flatten()
-    eps = 1e10
+    eps = 1e-12
 
     if dout is None:
         z = f(x)
@@ -23,31 +23,30 @@ def grad_check_sparse(f, x, dout, analytic_grads, num_checks=10, h=1e-7):
     upstream_grad = dout.flatten()
     analytic_grads = analytic_grads.flatten()
     
+    error = 0
     for _ in range(num_checks):
-        
         ix = tuple([random.randrange(m) for m in x_flat.shape])
-        ix = 0
+
         old_val = x_flat[ix].item()
         x_flat[ix] = old_val + h
         fph = f(x)
-
         x_flat[ix] = old_val - h
         fmh = f(x)
-
         x_flat[ix] = old_val
-        local_grad = (fph.flatten() - fmh.flatten()) / (2 * h)
 
+        local_grad = (fph.flatten() - fmh.flatten()) / (2 * h)
         num_grad = torch.dot(upstream_grad, local_grad).item()
-        analytic_grad = analytic_grads[ix]
+        analytic_grad = analytic_grads[ix].item()
         
-        top = abs(num_grad - analytic_grad).item()
-        bot = (abs(num_grad) + abs(analytic_grad)).clamp(min=eps).item()        
+        top = abs(num_grad - analytic_grad)
+        bot = (abs(num_grad) + abs(analytic_grad)) + eps        
         ix_error = top / bot 
+
         msg = "numerical: %f analytic: %f, relative error: %e"
         print(msg % (num_grad, analytic_grad, ix_error))
-        break
-#       
-    # return downstream_grad
+        error += ix_error
+        
+    print(f"Average error on {num_checks} number of checks: {error}")
 
 def compute_numeric_gradient(f, x, dout, h=1e-7):
     """
@@ -84,8 +83,7 @@ def compute_numeric_gradient(f, x, dout, h=1e-7):
         local_grad = (fph.flatten() - fmh.flatten()) / (2 * h)
 
         downstream_grad_flat[i] = torch.dot(upstream_grad, local_grad).item()
-        print("full", torch.dot(upstream_grad, local_grad).item())
-        break
+     
     return downstream_grad
 
 def rel_error(x,y,eps=1e-10):
