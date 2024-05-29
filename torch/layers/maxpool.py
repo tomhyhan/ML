@@ -20,6 +20,7 @@ class Maxpool:
         tx = x.detach()
         tx.requires_grad = True
         max_x = maxpool(tx)
+        
         cache = (tx, max_x)
         return max_x, cache
 
@@ -32,6 +33,6 @@ class Maxpool:
                 cahce: input x, result of maxpooled x
         """
         tx, max_x = cache
-        max_x.backward()
-        dx = tx.grad
+        max_x.backward(dout)
+        dx = tx.grad.detach()
         return dx
