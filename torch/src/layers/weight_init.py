@@ -1,5 +1,5 @@
 import torch
-
+import math
 def kaiming_initialization(D_in, D_out, k=None, relu=True, device="cpu", dtype=torch.float):
     """
         Xavier weight initialization for Linear Layer
@@ -16,8 +16,7 @@ def kaiming_initialization(D_in, D_out, k=None, relu=True, device="cpu", dtype=t
     gain = 2 if relu else 1
     
     if k == None:
-        w = torch.randn(D_in, D_out, device=device, dtype=dtype) * (gain / D_in)**1/2
+        w = torch.randn(D_in, D_out, device=device, dtype=dtype) * math.sqrt((gain / D_in))
     else:
-        w = torch.randn(D_out, D_in , k, k, device=device, dtype=dtype) * (gain / D_in)**1/2
-    
+        w = torch.randn(D_out, D_in , k, k, device=device, dtype=dtype) * math.sqrt((gain / (D_in*k*k)))
     return w

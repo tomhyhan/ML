@@ -19,5 +19,6 @@ def kaiming_initialization(D_in, D_out, k=None, relu=True, device="cpu", dtype=t
         w = torch.randn(D_in, D_out, device=device, dtype=dtype) * (gain / D_in)**1/2
     else:
         w = torch.randn(D_out, D_in , k, k, device=device, dtype=dtype) * (gain / D_in)**1/2
+        print(D_out, D_in , k, k)
     
     return w

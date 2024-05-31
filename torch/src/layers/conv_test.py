@@ -23,16 +23,21 @@ def test_gradients():
     dx, dw, db = Convolution.backward(dout, cache)
     
     fx = lambda X: Convolution.forward(X, filter, b, padding, stride)[0]
+    fw = lambda W: Convolution.forward(x, W, b, padding, stride)[0]
+    fb = lambda B: Convolution.forward(x, filter, B, padding, stride)[0]
     
+    dx_num = compute_numeric_gradient(fx, x, dout)
+    dw_num = compute_numeric_gradient(fw, filter, dout)
+    db_num = compute_numeric_gradient(fb, b, dout)
     
-    grad_check_sparse(fx, x, dout, dx)
-    
-    # dx_num = compute_numeric_gradient(fx, x, dout)
-    
-    # dx_error = rel_error(dx, dx_num)
-    # print("dx_error", dx_error)
+    dx_error = rel_error(dx, dx_num)
+    dw_error = rel_error(dw, dw_num)
+    db_error = rel_error(db, db_num)
 
-    
+    print("dx_error", dx_error)
+    print("dw_error", dw_error)
+    print("db_error", db_error)
+
 if __name__ == "__main__":
     test_gradients()
     

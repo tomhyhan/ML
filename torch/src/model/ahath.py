@@ -1,5 +1,5 @@
 import torch
-from .DeepConv import DeepConvNet
+from .etasfga import DeepConvNet
 
 def check_initial_loss():
     input_dim = (3,28,28)

@@ -104,5 +104,9 @@ def rel_error(x,y,eps=1e-10):
     
     top = (x - y).abs().max().item()
     bot = (x.abs() + y.abs()).clamp(min=eps).max().item()
+    print(x)
+    print(y)
+    print(top)
+    print(bot)
     error = top / bot
     return error

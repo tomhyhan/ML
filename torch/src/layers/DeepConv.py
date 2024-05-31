@@ -13,7 +13,7 @@ class DeepConvNet:
         final Layer is FullyConnectedLayer to apply softmax.
     """
     
-    def __init__(self, input_dim, filters, n_classes, reg, batchnorm, device="cpu", dtype=torch.float):
+    def __init__(self, input_dim,filters, n_classes, reg, batchnorm, weight_scale=1e-3, device="cpu", dtype=torch.float):
         """
             initialize weights, biases for each layer.
             
@@ -41,11 +41,17 @@ class DeepConvNet:
             if batchnorm:
                 self.params[f"gamma{l}"] = torch.ones(C_out, device=device, dtype=dtype)
                 self.params[f"beta{l}"] = torch.zeros(C_out, device=device, dtype=dtype)
+            
             if is_maxpool:
                 n_maxpools += 1
-            self.params[f"W{l}"] = kaiming_initialization(D_in=C_in, D_out=C_out, k=k, device=device, dtype=dtype)
+                
+            if weight_scale == "kaiming":
+                self.params[f"W{l}"] = kaiming_initialization(D_in=C_in, D_out=C_out, k=k, device=device, dtype=dtype)
+            else:
+                self.params[f"W{l}"] = torch.randn(C_out, C_in, k, k, device=device, dtype=dtype) * weight_scale
+                
             self.params[f"b{l}"] = torch.zeros(C_out, device=device, dtype=dtype)
-
+            # print("init", self.params[f"W{l}"].sum())
             C_in = C_out
 
         last_HW = H // (2**n_maxpools)
@@ -54,7 +60,12 @@ class DeepConvNet:
         if batchnorm:
             self.params[f"gamma{L}"] = torch.ones(C_out, device=device, dtype=dtype)
             self.params[f"beta{L}"] = torch.zeros(C_out, device=device, dtype=dtype)
-        self.params[f"W{L}"] = kaiming_initialization(D_in=C_in*last_HW*last_HW, D_out=n_classes, k=k)
+        
+        if weight_scale == "kaiming":
+            self.params[f"W{L}"] = kaiming_initialization(D_in=C_in*last_HW*last_HW, D_out=n_classes, relu=False,device=device, dtype=dtype)
+        else:
+            self.params[f"W{L}"] = torch.randn(C_in*last_HW*last_HW, n_classes, device=device, dtype=dtype) * weight_scale
+            
         self.params[f"b{L}"] = torch.zeros(n_classes, device=device, dtype=dtype)
         
         self.bn_params = []
@@ -82,7 +93,7 @@ class DeepConvNet:
                 gamma = self.params[f"gamma{l}"]
                 beta = self.params[f"beta{l}"]
                 bn_param = self.bn_params[l-1]
-                print("bn_param", bn_param)
+                # print("bn_param", bn_param)
                 X, cache = SequentialConv.forward(X,w,b,gamma,beta, bn_param)
                 self.caches[f"cache{l}"] = cache
                 
@@ -99,25 +110,27 @@ class DeepConvNet:
             return scores        
         
         self.grads = {}
-        loss, dout = Softmax(scores)
+        loss, dout = Softmax.backward(scores, Y)
         
         w = self.params[f"W{L}"]
+        loss += 0.5 * self.reg * torch.sum(w*w)
         cache = self.caches[f"cache{L}"]
         dout, dw, db = FullyConnectedLayer.backward(dout, cache)
         
         self.grads[f"W{L}"] = dw + self.reg * w 
         self.grads[f"b{L}"] = db 
-        loss += 0.5 * self.reg * torch.sum(w*w)
         
         for l in reversed(range(1,self.num_layers)):
             w = self.params[f"W{l}"]
+            # print(l)
+            # print("inside:", torch.sum(w*w))
+            loss += 0.5 * self.reg * torch.sum(w*w)
             cache = self.caches[f"cache{l}"]
             dout, dw, db, dgamma, dbeta = SequentialConv.backward(dout, cache)
             self.grads[f"W{l}"] = dw + self.reg * w 
             self.grads[f"b{l}"] = db 
             self.grads[f"gamma{l}"] = dgamma 
             self.grads[f"beta{l}"] = dbeta 
-            loss += 0.5 * self.reg * torch.sum(w*w)
             
         return loss, self.grads    
             
