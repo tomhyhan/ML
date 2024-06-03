@@ -1,5 +1,5 @@
 from fc import FullyConnectedLayer
-from grads import compute_numeric_gradient, rel_error, grad_check_sparse
+from src.test_tools.grads import compute_numeric_gradient, rel_error, grad_check_sparse
 import torch
 
 

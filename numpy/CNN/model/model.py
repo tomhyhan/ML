@@ -13,10 +13,14 @@ class Model:
                 if idx % 10 == 0:
                     print(f"{idx * batch_size} images has been trained")
                 activation = self.forward_pass(batch_x, training=True)
+                print(activation[0])
+                print(batch_y[0])
+                print(activation[0] - batch_y[0])
                 da_curr = activation - batch_y
                 self.backward_pass(da_curr)
                 self.update(epoch)
-
+                break
+            break
             prediction = self.forward_pass(test_x, training=False)
             accuracy = softmax_accuracy(prediction, test_y)
             print("accuracy: ", accuracy)

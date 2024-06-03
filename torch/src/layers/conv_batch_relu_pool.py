@@ -1,7 +1,7 @@
-from conv import Convolution
-from batch_norm import BatchNorm
-from relu import ReLU
-from maxpool import Maxpool
+from .conv import Convolution
+from .batch_norm import BatchNorm
+from .relu import ReLU
+from .maxpool import Maxpool
 
 class SequentialConv:
     

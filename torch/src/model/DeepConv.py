@@ -1,8 +1,8 @@
 import torch
-from weight_init import kaiming_initialization
-from conv_batch_relu_pool import SequentialConv
-from fc import FullyConnectedLayer
-from softmax import Softmax
+from src.utils.weight_init import kaiming_initialization
+from src.layers.conv_batch_relu_pool import SequentialConv
+from src.layers.fc import FullyConnectedLayer
+from src.layers.softmax import Softmax
 
 class DeepConvNet:
     """

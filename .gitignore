@@ -2,3 +2,8 @@ mnist.pkl.gz
 food-101
 MNIST
 food-101.tar.gz
+test
+ILearnDeepLearning.py
+__pycache__
+cifar-10-batches-py
+cifar-10-python.tar.gz
