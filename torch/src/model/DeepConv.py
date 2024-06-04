@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 import torch
 from src.utils.weight_init import kaiming_initialization
 from src.layers.conv_batch_relu_pool import SequentialConv
@@ -57,9 +60,9 @@ class DeepConvNet:
         last_HW = H // (2**n_maxpools)
         L = self.num_layers
         
-        if batchnorm:
-            self.params[f"gamma{L}"] = torch.ones(C_out, device=device, dtype=dtype)
-            self.params[f"beta{L}"] = torch.zeros(C_out, device=device, dtype=dtype)
+        # if batchnorm:
+        #     self.params[f"gamma{L}"] = torch.ones(C_out, device=device, dtype=dtype)
+        #     self.params[f"beta{L}"] = torch.zeros(C_out, device=device, dtype=dtype)
         
         if weight_scale == "kaiming":
             self.params[f"W{L}"] = kaiming_initialization(D_in=C_in*last_HW*last_HW, D_out=n_classes, relu=False,device=device, dtype=dtype)
@@ -111,7 +114,6 @@ class DeepConvNet:
         
         self.grads = {}
         loss, dout = Softmax.backward(scores, Y)
-        
         w = self.params[f"W{L}"]
         loss += 0.5 * self.reg * torch.sum(w*w)
         cache = self.caches[f"cache{L}"]

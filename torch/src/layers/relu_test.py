@@ -1,5 +1,5 @@
 from relu import ReLU
-from grads import compute_numeric_gradient, rel_error
+from src.test_tools.grads import compute_numeric_gradient, rel_error
 import torch
 
 def test_gradients():

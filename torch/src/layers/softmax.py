@@ -15,8 +15,6 @@ class Softmax:
         # exp_x -= torch.max(x, dim=1, keepdim=True).values
         # prob = torch.exp(exp_x) / torch.sum(torch.exp(exp_x), dim=1, keepdim=True)
         # scores = prob.clone() 
-        
-        
         shifted_logits = x - x.max(dim=1, keepdim=True).values
         Z = shifted_logits.exp().sum(dim=1, keepdim=True)
         log_probs = shifted_logits - Z.log()

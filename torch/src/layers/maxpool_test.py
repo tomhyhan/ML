@@ -1,6 +1,6 @@
 import torch
 from maxpool import Maxpool
-from grads import compute_numeric_gradient, rel_error
+from src.test_tools.grads import compute_numeric_gradient, rel_error
 
 def test_gradients():
     device="cpu"

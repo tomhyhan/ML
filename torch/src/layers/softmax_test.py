@@ -1,7 +1,7 @@
 import torch
 import math
 from softmax import Softmax
-from grads import grad_check_sparse, compute_numeric_gradient, rel_error
+from src.test_tools.grads import grad_check_sparse, compute_numeric_gradient, rel_error
 
 
 def test_loss():
