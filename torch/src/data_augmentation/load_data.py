@@ -19,9 +19,13 @@ def data_to_tensor(data, n_samples=None, dtype=torch.float32):
     """
     X = torch.tensor(data.data, dtype=dtype).permute(0,3,1,2).div(255)
     Y =  torch.tensor(data.targets, dtype=torch.int64)
+
     if n_samples is not None:
-        X = X[:n_samples].clone()
-        Y = Y[:n_samples].clone()
+        N = X.shape[0]
+        randomize = torch.randperm(N)
+        k = randomize[:n_samples]
+        X = X[k].clone()
+        Y = Y[k].clone()
     return X, Y
 
 def data_preprocess(image_show=False, n_samples=None, validation_ratio=0.2, dtype=torch.float32):
@@ -60,10 +64,12 @@ def data_preprocess(image_show=False, n_samples=None, validation_ratio=0.2, dtyp
     X_train -= x_mean
     X_test -= x_mean
     
-    n_validations = int(X_train.shape[0] * validation_ratio)
-    n_train = X_train.shape[0] - n_validations
+    N = X_train.shape[0]
+    n_validations = int(N * validation_ratio)
+    n_train = N - n_validations
 
     print("use torch randpermute to randomize extracting the training and val set")
+    
     x_train = X_train[:n_train]
     y_train = Y_train[:n_train]
     x_valids = X_train[n_train:n_train+n_validations]

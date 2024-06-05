@@ -29,6 +29,7 @@ class DeepConvNet:
                 reg: regularization strength for l2 reg
         """
         self.params = {}
+        self.filters = filters
         self.num_layers = len(filters) + 1
         self.reg = reg
         self.batchnorm = batchnorm
@@ -73,10 +74,39 @@ class DeepConvNet:
         
         self.bn_params = []
         if batchnorm:
-            for _ in range(self.num_layers):
+            for _ in range(self.num_layers-1):
                 # running mean and std will automatically saved in self.bn_params
                 self.bn_params.append({})
-                
+    
+    def save(self, file_path):
+        checkpoint = {
+            "params": self.params,
+            "dtype": self.dtype,
+            "reg": self.reg,
+            "batchnorm": self.batchnorm,
+            "bn_params": self.bn_params,
+            "filters": self.filters,
+        }
+        torch.save(checkpoint, file_path)
+
+    def load(self, file_path, dtype, device):
+        checkpoint = torch.load(file_path, map_location="cpu")
+        self.reg = checkpoint["reg"]
+        self.batchnorm = checkpoint["batchnorm"] 
+        self.bn_params = checkpoint["bn_params"] 
+        self.filters = checkpoint["filters"] 
+        self.params = checkpoint["params"] 
+        self.dtype = dtype
+        self.device = device
+        
+        for p in self.params:
+            self.params[p] = self.params[p].type(dtype).to(device)
+        
+        for i in range(len(self.bn_params)):
+            for p in ["running_mean", "running_var"]:
+                self.bn_params[i][p] = self.bn_params[i][p].type(dtype).to(device)
+        
+
     def loss(self, X, Y=None):
         """
             computes loss and gradients for deep Convolutional layer

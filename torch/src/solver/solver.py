@@ -84,7 +84,7 @@ class Solver:
         
         loss, grads = self.model.loss(batch_x, batch_y)
         
-        self.loss_history.append(loss)
+        self.loss_history.append(loss.item())
         
         with torch.no_grad():
             for param, w in self.model.params.items():
@@ -108,13 +108,14 @@ class Solver:
             N = num_samples
             X = X[sub_mask]
             y = y[sub_mask]
-
-
+        X = X.to(self.device)
+        y = y.to(self.device)
+        
         n_batches = N // batch_size
         
-        if n_batches % batch_size != 0:
+        if N % batch_size != 0:
             n_batches += 1
-            
+
         scores = []
         for k in range(n_batches):
             s = k * batch_size
@@ -122,16 +123,10 @@ class Solver:
             sub_x = X[s:e]
             s = self.model.loss(sub_x)
             scores.append(s.argmax(dim=1))
-            
-        # do something to make a 1d array
-        X = X.to(self.device)
-        y = y.to(self.device)
 
-
-
-        scores = self.model.loss(X)
-        result = (scores.argmax(dim=1) == y).to(dtype=torch.float).mean().item()
-        print("current Accuracy:", result)
+        scores = torch.cat(scores)
+        result = (scores == y).to(dtype=torch.float).mean().item()
+        return result
     
     def train(self):
         """
@@ -156,11 +151,22 @@ class Solver:
                 self.epoch += 1
                 for p in self.optim_configs:
                     self.optim_configs[p]["learning_rate"] *= self.lr_decay
-                print(f"End of epoch: {self.epoch}")
             
             with torch.no_grad():
                 start = t == 0
                 end = t == n_iterations - 1
                 if start or end or end_epoch:
-                    self.check_accuracy(self.X_val, self.y_val)
+                    train_acc = self.check_accuracy(self.X_train, self.y_train)
+                    val_acc = self.check_accuracy(self.X_val, self.y_val)
                     
+                    self.training_acc_history.append(train_acc)
+                    self.val_acc_history.append(val_acc)
+                    
+                    print(f"Epoch {self.epoch}/{self.epochs}: train acc: {train_acc:2f} validation acc: {val_acc:2f}")
+                    
+                
+                    if val_acc > self.best_acc:
+                        self.best_acc = val_acc
+                        self.best_params = {p : v.clone() for p,v in self.model.params.items()}
+        
+        # return best acc?
