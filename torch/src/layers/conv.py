@@ -4,7 +4,7 @@ class Convolution:
     @staticmethod
     def forward(x, filter, b, padding, stride):
         """
-            computes forward pass for the convolutional layer (fater version using pytorch Conv2d layer)
+            computes forward pass for the convolutional layer (faster version using pytorch Conv2d layer)
             
             Inputs:
                 x:      (N, C_in, H, W) image input 

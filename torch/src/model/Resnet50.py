@@ -7,11 +7,30 @@ from src.layers.conv_batch_relu_pool import SequentialConv
 from src.layers.fc import FullyConnectedLayer
 from src.layers.softmax import Softmax
 
-class DeepConvNet:
+
+
+class ResNet50:
     """
-        Deep convolution neural network. Each layer has following architecture except the final layer:
+        Residual Network 50. 
         
-        Conv - BatchNorm - Relu - Maxpool?
+        Following Building blocks are needed:
+            - conv3x3: 
+                kernel size = 3
+                padding = 1
+                stride = 1
+            - conv1x1
+                kernelsize = 1
+                padding = 0
+                stride = 1
+            - Basic Block
+                conv3x3 - bn - relu - conv3x3 - bn - identity - relu
+            - Bottle neck
+                conv1x1 - bn - relu - conv3x3 - bn - relu
+                - conv1x1 - bn - identity - relu
+                 
+        Each layer has following architecture except the final layer:
+        
+        Basic Conv3 - BatchNorm - Relu - Maxpool?
         
         final Layer is FullyConnectedLayer to apply softmax.
     """

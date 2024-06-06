@@ -10,11 +10,11 @@ from viz.viz import viz_loss_history, viz_training_and_val
 if "__main__" == __name__:
     device = "cpu"
     dtype = torch.float32
-    n_samples = 5000
+    n_samples = 50000
     
     x_train, y_train, x_valids, y_valids, X_test, y_test = data_preprocess(image_show=False, n_samples=n_samples, validation_ratio=0.2, dtype=dtype)
     
-    small_samples = 50
+    small_samples = 50000
     data = {
         "X_train" : x_train[:small_samples],
         "y_train":  y_train[:small_samples],
@@ -37,7 +37,7 @@ if "__main__" == __name__:
 
     model = DeepConvNet(input_dim, filters, n_classes, reg, batchnorm, weight_scale, device, dtype)
     
-    solver = Solver(model, data, epochs=15, batch_size=10, device=device, 
+    solver = Solver(model, data, epochs=3, batch_size=50, device=device, 
                     print_every=1000,
                     optim_config={
                         'learning_rate': 1e-3,
@@ -47,19 +47,19 @@ if "__main__" == __name__:
     
     solver.train()
     
-    file_path = "./deepconv.pth"
-    model.save(file_path)
+    # file_path = "./deepconv.pth"
+    # model.save(file_path)
     
-    model.load(file_path, torch.float32, "cpu")
+    # model.load(file_path, torch.float32, "cpu")
     
-    solver = Solver(model, data, epochs=5, batch_size=10, device=device, 
-                    print_every=1000,
-                    optim_config={
-                        'learning_rate': 1e-3,
-                    }, 
-                    update_rule=adam
-                    )
-    solver.train()
+    # solver = Solver(model, data, epochs=5, batch_size=10, device=device, 
+    #                 print_every=1000,
+    #                 optim_config={
+    #                     'learning_rate': 1e-3,
+    #                 }, 
+    #                 update_rule=adam
+    #                 )
+    # solver.train()
     # viz_loss_history(solver.loss_history)
     # viz_training_and_val(solver.training_acc_history, solver.val_acc_history)
 

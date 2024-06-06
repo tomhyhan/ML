@@ -1,13 +1,13 @@
 import sys
 sys.path.append("../")
 
+import time
 import torch
 from src.model.DeepConv import DeepConvNet
 
 class Solver:
     """
         Solver class to run the model and save the key statistics: loss
-        
     """
     def __init__(self, model: DeepConvNet, data, **kwargs):
         """
@@ -69,8 +69,8 @@ class Solver:
         """
         if config is None:
             config = {}
+
         config.setdefault("learning_rate", 1e-3)
-        
         lr = config["learning_rate"]
         next_w = w - lr * dw
         return next_w, config
@@ -81,7 +81,6 @@ class Solver:
         batch_mask = torch.randperm(N)[:self.batch_size]
         batch_x = self.X_train[batch_mask].to(self.device)
         batch_y = self.y_train[batch_mask].to(self.device)
-        
         loss, grads = self.model.loss(batch_x, batch_y)
         
         self.loss_history.append(loss.item())
@@ -137,7 +136,7 @@ class Solver:
         n_iterations = self.epochs * n_batches_per_iteration 
 
         print("total number of iterations: ", n_iterations)
-        
+        starttime = time.time()
         for t in range(n_iterations):
             self._step()
             
@@ -156,6 +155,9 @@ class Solver:
                 start = t == 0
                 end = t == n_iterations - 1
                 if start or end or end_epoch:
+                    endtime = time.time()
+                    print(f"time: {endtime - starttime}")
+                    starttime = endtime
                     train_acc = self.check_accuracy(self.X_train, self.y_train)
                     val_acc = self.check_accuracy(self.X_val, self.y_val)
                     
