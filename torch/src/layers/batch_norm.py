@@ -59,7 +59,7 @@ class BatchNorm:
                 dbeta: gradients w.r.t. beta
         """
         (tx, batchnormx, batchnorm_layer) = cache
-        batchnormx.backward(dout)
+        batchnormx.backward(dout, retain_graph=True)
         dx = tx.grad.detach()
         dgamma = batchnorm_layer.weight.grad.detach()
         dbeta = batchnorm_layer.bias.grad.detach()

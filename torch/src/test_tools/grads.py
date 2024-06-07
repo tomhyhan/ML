@@ -75,7 +75,6 @@ def compute_numeric_gradient(f, x, dout, h=1e-7):
         
         x_flat[i] = old_val + h
         fph = f(x)
-
         x_flat[i] = old_val - h
         fmh = f(x)
 

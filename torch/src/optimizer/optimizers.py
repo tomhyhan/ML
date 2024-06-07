@@ -35,8 +35,8 @@ def adam(w, dw, config):
     
     config['t'] += 1
     t = config['t']
-    
-    
+    print("w", w.shape)
+    print("adam", m.shape, dw.shape)
     m = (beta1 * m) + (1 - beta1) * dw 
     s = (beta2 * s) + (1 - beta2) * torch.square(dw)
     

@@ -5,7 +5,7 @@ from .identity import Identity
 
 class BasicBlock:
     @staticmethod
-    def forward(X, weights, biases, stride, gammas, betas, bn_params, down_sample=False):
+    def forward(X, weights, biases, gammas, betas, bn_params, stride, down_sample=False):
         """
             Computes forward pass for resnet basic block 
             
@@ -44,7 +44,7 @@ class BasicBlock:
         
         conv_cache3 = bn_cache3 = None
         if down_sample:
-            out_identity, conv_cache3 = Convolution.forward(out_identity, w3, b3, stride=2)
+            out_identity, conv_cache3 = Convolution.forward(out_identity, w3, b3, stride=2, padding=0)
             out_identity, bn_cache3 = BatchNorm.forward(out_identity, gamma3, beta3, bn_param3)   
 
         out += out_identity
@@ -65,7 +65,6 @@ class BasicBlock:
         if conv_cache3 is not None:
             didentity, dw3, db3 = BatchNorm.backward(didentity, bn_cache3)
             didentity, dgamma3, dbeta3= Convolution.backward(didentity, conv_cache3)
-
         dout, dgamma2, dbeta2 = BatchNorm.backward(dout, bn_cache2)        
         dout, dw2, db2 = Convolution.backward(dout, conv_cache2)        
         dout = ReLU.backward(dout, relu_cache1)
@@ -73,18 +72,30 @@ class BasicBlock:
         dout, dw1, db1 = Convolution.backward(dout, conv_cache1)        
         
         dout += didentity
-        grads = {
-            "dw3": dw3, 
-            "db3": db3, 
-            "dgamma3": dgamma3, 
-            "dbeta3": dbeta3, 
-            "dgamma2": dgamma2, 
-            "dbeta2": dbeta2, 
-            "dw2": dw2, 
-            "db2": db2, 
-            "dgamma1": dgamma1, 
-            "dbeta1": dbeta1, 
-            "dw1": dw1, 
-            "db1": db1, 
-        }
-        return dout, grads
+        
+        dweights = [dw1, dw2]
+        dbiases = [db1, db2]
+        dgamma = [dgamma1, dgamma2]
+        dbeta = [dbeta1, dbeta2]
+        
+        if conv_cache3 is not None:
+            dweights.append(dw3)
+            dbiases.append(db3)
+            dgamma.append(dgamma3)
+            dbeta.append(dbeta3)
+        
+        # grads = {
+        #     "dw3": dw3, 
+        #     "db3": db3, 
+        #     "dgamma3": dgamma3, 
+        #     "dbeta3": dbeta3, 
+        #     "dgamma2": dgamma2, 
+        #     "dbeta2": dbeta2, 
+        #     "dw2": dw2, 
+        #     "db2": db2, 
+        #     "dgamma1": dgamma1, 
+        #     "dbeta1": dbeta1, 
+        #     "dw1": dw1, 
+        #     "db1": db1, 
+        # }
+        return dout, dweights, dbiases, dgamma, dbeta
