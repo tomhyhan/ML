@@ -31,7 +31,7 @@ if "__main__" == __name__:
     
     input_dim = x_train[0].shape
     # filters = [[8, True], [16, True]]
-    layers = [[2,4],[2,8],[1,16],[1,32]]
+    layers = [[1,4],[1,8],[1,16],[1,32]]
     n_classes = 10
     reg = 1e-2
 

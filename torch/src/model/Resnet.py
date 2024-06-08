@@ -81,8 +81,11 @@ class ResNet:
                 self.bn_params[f"bn_params{self.n_blocks}"] = bn_params 
                 self.n_blocks += 1
 
-        L = self.n_blocks + 1        
+        # print([p for p in self.params])
+        L = self.n_blocks       
         self.params[f"W{L}"] = kaiming_initialization(D_in=C_out, D_out=n_classes, relu=False,device=device, dtype=dtype)
+        # print(f"W{L}")
+        # print(self.params[f"W{L}"].shape)
         self.params[f"b{L}"] = torch.zeros(n_classes, device=device, dtype=dtype)
                 
     def init_block_params(self, C_out):
@@ -196,7 +199,7 @@ class ResNet:
         X, cache_avg = AveragePool.forward(X)
         self.caches[f"cache_avg"] = cache_avg
         
-        L = self.n_blocks + 1
+        L = self.n_blocks 
         w = self.params[f"W{L}"]
         b = self.params[f"b{L}"]
         

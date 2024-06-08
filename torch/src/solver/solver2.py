@@ -64,8 +64,7 @@ class Solver2:
                 n = len(self.model.params[param])
                 # just create a new config 
                 # FIX THIS
-                config = {k:v for k, v in self.optim_config.items()}
-                self.optim_configs[param] = [config] * n
+                self.optim_configs[param] = [{k:v for k, v in self.optim_config.items()} for _ in range(n)] 
             else:
                 config = {k:v for k, v in self.optim_config.items()}
                 self.optim_configs[param] = config
@@ -91,26 +90,29 @@ class Solver2:
         loss, grads = self.model.loss(batch_x, batch_y)
         
         self.loss_history.append(loss.item())
-        
+        print(self.model.params["W5"].shape)
         with torch.no_grad():
             for param in self.model.params:
                 if isinstance(self.model.params[param], list):
+                    # print("len", len(self.model.params[param]), len(grads[param]), len(self.optim_configs[param]))
+                    # print(param)
                     for i, (w, dw, config) in enumerate(zip(self.model.params[param], grads[param], self.optim_configs[param])):
-                        # print(self.optim_configs[param])
-                        print(i)
-                        print(w.shape, dw.shape)
+                        # print("w.shape, dw.shape", w.shape, dw.shape)
+                        # print("running once")
                         next_w, next_config = self.update_rule(w, dw, config)
                         self.model.params[param][i] = next_w
                         self.optim_configs[param][i] = next_config
-                        print(self.optim_configs[param])
-                        break
                 else:
+                    # print("running second")
+                    # print(param)
+                    # print(w.shape)
+                    # print(config)
                     dw = grads[param]
                     config = self.optim_configs[param]
                     next_w, next_config = self.update_rule(w, dw, config)
                     self.model.params[param] = next_w
                     self.optim_configs[param] = next_config
-                break
+                    
     def check_accuracy(self, X, y, num_samples=None, batch_size=100):
         """
             compute the accuracy of X compare to true label Y.
@@ -185,8 +187,8 @@ class Solver2:
                     print(f"Epoch {self.epoch}/{self.epochs}: train acc: {train_acc:2f} validation acc: {val_acc:2f}")
                     
                 
-                    if val_acc > self.best_acc:
-                        self.best_acc = val_acc
-                        self.best_params = {p : v.clone() for p,v in self.model.params.items()}
+                    # if val_acc > self.best_acc:
+                    #     self.best_acc = val_acc
+                    #     self.best_params = {p : v.clone() for p,v in self.model.params.items()}
         
         # return best acc?
