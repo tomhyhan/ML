@@ -12,11 +12,11 @@ from viz.viz import viz_loss_history, viz_training_and_val
 if "__main__" == __name__:
     device = "cpu"
     dtype = torch.float32
-    n_samples = 5000
+    n_samples = 50000
     
     x_train, y_train, x_valids, y_valids, X_test, y_test = data_preprocess(image_show=False, n_samples=n_samples, validation_ratio=0.2, dtype=dtype)
     
-    small_samples = 50
+    small_samples = 50000
     data = {
         "X_train" : x_train[:small_samples],
         "y_train":  y_train[:small_samples],
@@ -31,14 +31,15 @@ if "__main__" == __name__:
     
     input_dim = x_train[0].shape
     # filters = [[8, True], [16, True]]
-    layers = [[1,4],[1,8],[1,16],[1,32]]
+    layers = [[3,8],[4,16],[6,32],[3,64]]
     n_classes = 10
     reg = 1e-2
+    reg = 0
 
     model = ResNet(input_dim, layers, n_classes, reg, device, dtype)
     
-    solver = Solver2(model, data, epochs=15, batch_size=10, device=device, 
-                    print_every=20,
+    solver = Solver2(model, data, epochs=2, batch_size=100, device=device, 
+                    print_every=100,
                     optim_config={
                         'learning_rate': 1e-3,
                     }, 

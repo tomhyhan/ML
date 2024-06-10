@@ -90,25 +90,29 @@ class Solver2:
         loss, grads = self.model.loss(batch_x, batch_y)
         
         self.loss_history.append(loss.item())
-        print(self.model.params["W5"].shape)
+        # print(self.model.params["W5"].shape)
         with torch.no_grad():
             for param in self.model.params:
+                # print(param)
+                # print(self.optim_configs["W5"])
                 if isinstance(self.model.params[param], list):
                     # print("len", len(self.model.params[param]), len(grads[param]), len(self.optim_configs[param]))
                     # print(param)
                     for i, (w, dw, config) in enumerate(zip(self.model.params[param], grads[param], self.optim_configs[param])):
                         # print("w.shape, dw.shape", w.shape, dw.shape)
                         # print("running once")
+                        # print(param, i)
                         next_w, next_config = self.update_rule(w, dw, config)
                         self.model.params[param][i] = next_w
                         self.optim_configs[param][i] = next_config
                 else:
+                    w = self.model.params[param]
+                    dw = grads[param]
+                    config = self.optim_configs[param]
                     # print("running second")
                     # print(param)
                     # print(w.shape)
                     # print(config)
-                    dw = grads[param]
-                    config = self.optim_configs[param]
                     next_w, next_config = self.update_rule(w, dw, config)
                     self.model.params[param] = next_w
                     self.optim_configs[param] = next_config
@@ -169,8 +173,9 @@ class Solver2:
                 # later maybe try cosine 
                 self.epoch += 1
                 for p in self.optim_configs:
-                    self.optim_configs[p]["learning_rate"] *= self.lr_decay
-            
+                    pass
+                    # self.optim_configs[p]["learning_rate"] *= self.lr_decay
+
             with torch.no_grad():
                 start = t == 0
                 end = t == n_iterations - 1

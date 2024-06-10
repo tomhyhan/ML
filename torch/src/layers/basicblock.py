@@ -63,8 +63,8 @@ class BasicBlock:
 
         dw3 = db3 = dgamma3 = dbeta3 = None
         if conv_cache3 is not None:
-            didentity, dw3, db3 = BatchNorm.backward(didentity, bn_cache3)
-            didentity, dgamma3, dbeta3= Convolution.backward(didentity, conv_cache3)
+            didentity, dgamma3, dbeta3 = BatchNorm.backward(didentity, bn_cache3)
+            didentity, dw3, db3= Convolution.backward(didentity, conv_cache3)
         dout, dgamma2, dbeta2 = BatchNorm.backward(dout, bn_cache2)        
         dout, dw2, db2 = Convolution.backward(dout, conv_cache2)        
         dout = ReLU.backward(dout, relu_cache1)

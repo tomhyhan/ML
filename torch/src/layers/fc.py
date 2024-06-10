@@ -1,7 +1,6 @@
 import torch
 
 class FullyConnectedLayer:
-
     @staticmethod
     def forward(x, w, b):
         """

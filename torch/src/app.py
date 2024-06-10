@@ -37,7 +37,7 @@ if "__main__" == __name__:
 
     model = DeepConvNet(input_dim, filters, n_classes, reg, batchnorm, weight_scale, device, dtype)
     
-    solver = Solver(model, data, epochs=3, batch_size=50, device=device, 
+    solver = Solver(model, data, epochs=2, batch_size=100, device=device, 
                     print_every=1000,
                     optim_config={
                         'learning_rate': 1e-3,
