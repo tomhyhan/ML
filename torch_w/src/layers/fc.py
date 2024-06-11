@@ -2,7 +2,7 @@ import sys
 sys.path.append("../")
 
 import torch
-from ..utils.weight_init import kaiming_init
+from src.utils.weight_init import kaiming_init
 
 class FullyConnectedLayer:
     """
@@ -19,16 +19,17 @@ class FullyConnectedLayer:
         if weight_scale:
             self.w = kaiming_init(D_in=D, D_out=M, relu=relu, device=device, dtype=dtype)
         else:
-            self.w = torch.randn(D_in=D, D_out=M, device=device, dtype=dtype)
+            self.w = torch.randn(D, M, device=device, dtype=dtype)
             
-        self.bias = torch.randn(M, device=device, dtype=dtype)
+        self.b = torch.randn(M, device=device, dtype=dtype)
         self.dw = self.db = None
+        
         self.params = {
             'w': self.w,
             'b': self.b
         }
         self.config = {}
-        self.grad = {}
+        self.grads = {}
                 
     def forward(self, X):
         """
@@ -39,9 +40,9 @@ class FullyConnectedLayer:
             Outpus:
                 out: (N, M)
         """
-        N = X.shape(0)
+        N = X.shape[0]
         self.prev_x = X.reshape(N, -1).clone()
-        out = torch.matmul(X, self.w.reshape(N, -1)) + self.b
+        out = torch.matmul(X.reshape(N, -1), self.w) + self.b
 
         return out 
     
@@ -57,6 +58,7 @@ class FullyConnectedLayer:
                 dup: (N, M) upstream gradients
             Outputs:
                 dout: (N, D) downstream gradients w.r.t x
+            Grad parameter:
                 dw: (D, M) gradients w.r.t. w
                 db: (M, ) gradients w.r.t. b
         """
@@ -64,10 +66,8 @@ class FullyConnectedLayer:
         dw = torch.matmul(self.prev_x.T, dup) 
         dout = torch.matmul(dup, self.w.T)
 
-        self.grads = {
-            'w': dw,
-            'b': db
-        }
+        self.grads['w'] = dw
+        self.grads['b'] = db
         
         return dout
     
@@ -78,4 +78,3 @@ class FullyConnectedLayer:
         self.grads = {}
     
     
-print("asdf")
