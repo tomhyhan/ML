@@ -2,10 +2,8 @@ class ReLU:
     """
         ReLU layer
     """
-    def __init__(self, device, dtype):
-        self.device = device
-        self.dtype = dtype
-        
+    def __init__(self):
+        pass
 
     def forward(self, X):
         """
