@@ -22,7 +22,6 @@ class FullyConnectedLayer:
             self.w = torch.randn(D, M, device=device, dtype=dtype)
             
         self.b = torch.randn(M, device=device, dtype=dtype)
-        self.dw = self.db = None
         
         self.params = {
             'w': self.w,
@@ -41,7 +40,7 @@ class FullyConnectedLayer:
                 out: (N, M)
         """
         N = X.shape[0]
-        self.prev_x = X.reshape(N, -1).clone()
+        self.prev_x = X
         out = torch.matmul(X.reshape(N, -1), self.w) + self.b
 
         return out 
@@ -62,16 +61,17 @@ class FullyConnectedLayer:
                 dw: (D, M) gradients w.r.t. w
                 db: (M, ) gradients w.r.t. b
         """
+        N = self.prev_x.shape[0]
         db = torch.sum(dup, dim=0)
-        dw = torch.matmul(self.prev_x.T, dup) 
+        dw = torch.matmul(self.prev_x.reshape(N, -1).T, dup) 
         dout = torch.matmul(dup, self.w.T)
 
         self.grads['w'] = dw
         self.grads['b'] = db
         
-        return dout
+        return dout.reshape(self.prev_x.shape)
     
-    def reset_grad(self):
+    def reset_grads(self):
         """
             Reset gradients
         """

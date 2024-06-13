@@ -32,8 +32,6 @@ class Conv:
         self.padding= padding
         self.groups = groups
         
-        
-        self.dw = self.db = None
         self.params = {
             'w' : self.w,
             'b' : self.b,
@@ -88,14 +86,13 @@ class Conv:
         
         self.conv.weight.grad = None
         self.conv.bias.grad = None
-        
-        self.grads = {
-            'w' : dw,
-            'b' : db
-        }
-        
-        return dx
+        self.grads['w'] = dw
+        self.grads['b'] = db
 
+        return dx
     
-    def reset(self):
+    def reset_grads(self):
         self.grads = {}
+        
+    def __repr__(self):
+        return __name__

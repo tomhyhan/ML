@@ -18,7 +18,7 @@ class AveragePool:
                 out: (N, C, 1, 1) outputs an input data where the W, H is reduce to 1x1
         """
         avgpool = AdaptiveAvgPool2d((1,1))
-        self.tx = X.clone()
+        self.tx = X.detach()
         self.tx.requires_grad = True
         
         self.out = avgpool(self.tx)
@@ -31,6 +31,8 @@ class AveragePool:
 
             Inputs:
                 dout: upstream gradients
+            Outputs:
+                dx: downtstream gradients
         """
         
         self.out.backward(dout)

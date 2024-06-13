@@ -62,12 +62,13 @@ class BatchNorm:
             
             Inputs:
                 dout: (N, C, H, W) upstream gradients
-            outputs:
+            Outputs:
                 dx: (N, C, H, W) gradients w.r.t x
+            Grads:
                 dw: (C) gradients w.r.t. gamma
                 db: (C) gradietns w.r.t. beta
         """
-        self.out.backward(dout)
+        self.out.backward(dout, retain_graph=True)
         
         dx = self.tx.grad.detach()
         dw = self.bn.weight.grad.detach()
@@ -80,3 +81,9 @@ class BatchNorm:
         self.grads['b'] = db
         
         return dx
+    
+    def reset_grads(self):
+        self.grads = {}
+    
+    def __repr__(self):
+        return __name__
