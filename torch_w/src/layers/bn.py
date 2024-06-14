@@ -19,11 +19,15 @@ class BatchNorm:
         
         self.dw = self.db = None
         
+        # fix: refactor this with module super class
         self.params = {
-            'w': self.w,
-            'b': self.b
+            'w' : self.w,
+            'b' : self.b,
         }
-        self.config = {}
+        self.configs = {
+            'w' : {},
+            'b' : {},
+        }
         self.grads = {}
     
     def forward(self, X, training=True):

@@ -32,12 +32,17 @@ class Conv:
         self.padding= padding
         self.groups = groups
         
+        # fix: refactor this with module super class
         self.params = {
             'w' : self.w,
             'b' : self.b,
         }
+        self.configs = {
+            'w' : {},
+            'b' : {},
+        }
         self.grads = {}
-        self.config = {}
+        # print("conv w shape:", self.w.shape)
     
     def forward(self, X):
         """

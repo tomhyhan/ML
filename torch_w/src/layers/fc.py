@@ -23,12 +23,17 @@ class FullyConnectedLayer:
             
         self.b = torch.randn(M, device=device, dtype=dtype)
         
+        # fix: refactor this with module super class
         self.params = {
-            'w': self.w,
-            'b': self.b
+            'w' : self.w,
+            'b' : self.b,
         }
-        self.config = {}
+        self.configs = {
+            'w' : {},
+            'b' : {},
+        }
         self.grads = {}
+
                 
     def forward(self, X):
         """

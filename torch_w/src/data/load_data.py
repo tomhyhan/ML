@@ -35,7 +35,7 @@ def load_data(dtype=torch.float32, validation_ratio=0.2, n_samples=None):
     X_test, y_test = image_to_tensor(test_data, dtype, n_samples)
     
     # zero center data
-    x_mean = X_train.mean(dim=(0,2,3))
+    x_mean = X_train.mean(dim=(0,2,3), keepdim=True)
     X_train -= x_mean
     X_test -= x_mean
     

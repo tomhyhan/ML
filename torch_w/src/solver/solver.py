@@ -62,22 +62,30 @@ class Solver:
         self.training_acc_history = []
         self.val_acc_history = []
         
+        # for layer in self.model.param_layers:
+        #  if isinstance(layer, BasicBlock):
+            #  for param in layer.param_layers:
+                #  for p in param.params:
         for layer in self.model.param_layers:
             if isinstance(layer, BasicBlock):
                 for param in layer.param_layers:
-                    param.config = {k:v for k, v in self.optim_config.items()}
+                    for p in param.configs:
+                        param.configs[p] = {k:v for k, v in self.optim_config.items()}
             else:
-                layer.config = {k:v for k, v in self.optim_config.items()}
+                for p in layer.params:
+                    layer.configs[p] = {k:v for k, v in self.optim_config.items()}
 
     def sgd(self, w, dw, config):
-        if len(config) == 0:
+        if len(config) == 1:
             config = {
-                "learning_rate": 1e-3
+                "learning_rate": 1e-3,
+                "test": "test"
             }
 
         lr = config["learning_rate"]
-        next_w = w - lr * dw
-        return next_w, config
+        w -= lr * dw
+
+        return config
     
     def _loss(self):
         """
@@ -91,6 +99,8 @@ class Solver:
         loss = self.model.loss(batch_x, batch_y)
         self.loss_history.append(loss)
         
+        # print(self.model.param_layers[0].param_layers[0].w.shape)
+        
         with torch.no_grad():
             for layer in self.model.param_layers:
                 if isinstance(layer, BasicBlock):
@@ -98,21 +108,23 @@ class Solver:
                         for p in param.params:
                             w = param.params[p]
                             dw = param.grads[p]
-                            config = param.config
-                            next_w, next_config = self.update_rule(w,dw,config)
-                            param.w = next_w
-                            param.config = next_config
+                            config = param.configs[p]
+                            next_config = self.update_rule(w,dw,config)
+                            param.configs[p] = next_config
                         param.reset_grads()
+                    #     break
+                    # break
                 else:
+                    # fix: refactor this to another function
                     for p in layer.params:
                         w = layer.params[p]
                         dw = layer.grads[p]
-                        config = layer.config
-                        next_w, next_config = self.update_rule(w,dw,config)
-                        layer.w = next_w
-                        layer.config = next_config
-                        layer.reset_grads()
-    
+                        config = layer.configs[p]
+                        next_config = self.update_rule(w,dw,config)
+                        layer.configs[p] = next_config
+                    layer.reset_grads()
+                # break
+        
     def train(self):
         """
             train the data using the model.
@@ -124,7 +136,6 @@ class Solver:
         
         for t in range(n_iterations):
             self._loss()
-            
             if t % self.print_every == 0:
-                print("loss: ", self.loss_history[-1])
-
+                print(f"train: {t} loss: {self.loss_history[-1]}", )
+            # break

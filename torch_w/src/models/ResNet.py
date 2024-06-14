@@ -43,7 +43,7 @@ class ResNet:
         self.softmax = Softmax()
         
         self.param_layers = [*self.block1, *self.block2, *self.block3, *self.block4, self.fc]
-        print(self.param_layers)
+
         # later
         # self.block1 = self._define_blocks(3, 64,n_blocks[0], stride=2)
         # self.block1 = self._define_blocks(64, 128, n_blocks[1],  stride=2)
@@ -72,7 +72,7 @@ class ResNet:
                 loss: Scalar loss value
         """
         out = X
-        
+        # print(self.block1[0].conv1.w.shape)
         for blocks in [self.block1, self.block2, self.block3, self.block4]:        
             for block in blocks:
                 out = block.forward(out)
