@@ -28,19 +28,23 @@ def test_params():
 
 
 def test_loss():
-    X_train, y_train, X_val, y_val, X_test, y_test = load_data(n_samples=500)
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data(n_samples=50000)
     
+    samples = 500
     data = {
-        "X_train": X_train,
-        "y_train": y_train,
+        "X_train": X_train[:samples],
+        "y_train": y_train[:samples],
         "X_val": X_val,
         "y_val": y_val,
     }
     
+    print("train shape:", data["X_train"].shape)
+    print("valids shape:", data["X_val"].shape)
+    
     device = "cpu"
     dtype = torch.float32
     
-    model = ResNet(BasicBlock, [1,1,1,1], device=device ,dtype=dtype)
+    model = ResNet(BasicBlock, [3,4,6,3], device=device ,dtype=dtype)
     
     solver = Solver(data, model, epochs=15, batch_size=10, optim_params={"learning_rate": 1e-3}, device=device, dtype=dtype, print_every=20)
     
