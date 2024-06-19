@@ -14,7 +14,7 @@ class BasicBlock:
         Conv - BN - Relu - Conv - BN - Identity - Relu
     """
     
-    def __init__(self, C_in, C_out, stride, device="cpu", dtype=torch.float32, training=True):
+    def __init__(self, C_in, C_out, stride, device="cpu", dtype=torch.float32, base_width=64, groups=1, training=True):
         """
             initialization of basic block with differemt types of layers
             
@@ -69,7 +69,7 @@ class BasicBlock:
         
         if self.down_sample:
             identity = self.conv_down.forward(identity)
-            identity = self.bn_down.forward(identity)
+            identity = self.bn_down.forward(identity, training=self.training)
         
         out += identity
         out = self.relu2.forward(out)

@@ -6,8 +6,10 @@ import math
 from src.solver.solver import Solver
 from src.models.ResNet import ResNet
 from src.layers.basicblock import BasicBlock
+from src.layers.bottleneck import Bottleneck
 from src.utils.test_tools import compute_numeric_gradients, rel_error
 from src.data.load_data import load_data
+from src.optimizer.optimizers import adam
 
 def test_params():
     device = "cpu"
@@ -27,15 +29,15 @@ def test_params():
     solver.train()
 
 
-def test_loss():
+def test_basicblock_overfit():
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(n_samples=50000)
     
     samples = 500
     data = {
         "X_train": X_train[:samples],
         "y_train": y_train[:samples],
-        "X_val": X_val,
-        "y_val": y_val,
+        "X_val": X_val[:samples],
+        "y_val": y_val[:samples],
     }
     
     print("train shape:", data["X_train"].shape)
@@ -46,9 +48,35 @@ def test_loss():
     
     model = ResNet(BasicBlock, [3,4,6,3], device=device ,dtype=dtype)
     
-    solver = Solver(data, model, epochs=15, batch_size=10, optim_params={"learning_rate": 1e-3}, device=device, dtype=dtype, print_every=20)
+    solver = Solver(data, model, epochs=15, batch_size=10, optim_params={"learning_rate": 1e-3}, device=device, dtype=dtype, print_every=20, update_rule=adam)
     
     solver.train()
+
+def test_bottleneck_overfit():
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data(n_samples=1000)
+    
+    samples = 500
+    data = {
+        "X_train": X_train[:samples],
+        "y_train": y_train[:samples],
+        "X_val": X_val[:samples],
+        "y_val": y_val[:samples],
+    }
+    
+    print("train shape:", data["X_train"].shape)
+    print("valids shape:", data["X_val"].shape)
+    
+    device = "cpu"
+    dtype = torch.float32
+    
+    model = ResNet(Bottleneck, [3,4,6,3], device=device ,dtype=dtype)
+    
+    solver = Solver(data, model, epochs=15, batch_size=10, optim_params={"learning_rate": 1e-3}, device=device, dtype=dtype, print_every=20, update_rule=adam)
+    
+    solver.train()
+    
+    
 if __name__ == "__main__":
     # test_params()
-    test_loss()
+    # test_loss()
+    test_bottleneck_overfit()

@@ -1,6 +1,7 @@
 import sys
 sys.path.append("../")
 
+import math
 import torch
 from src.models.ResNet import ResNet
 from src.layers.basicblock import BasicBlock
@@ -58,6 +59,7 @@ class Solver:
         self.n_val_samples = kwargs.pop("n_val_samples", None)
         self.print_every = kwargs.pop("print_every", 100)
 
+        self.epoch = 0
         self.loss_history = []
         self.training_acc_history = []
         self.val_acc_history = []
@@ -79,13 +81,45 @@ class Solver:
         if len(config) == 1:
             config = {
                 "learning_rate": 1e-3,
-                "test": "test"
             }
 
         lr = config["learning_rate"]
         w -= lr * dw
 
         return config
+    
+    def check_accuracy(self, X, y, n_samples=None, batch_size=100):
+        """
+            check accuracy of data set X using the model and true label
+        """
+        
+        N = X.shape[0]
+        if n_samples is not None:
+            mask = torch.randperm(N)[:n_samples]
+            X = X[mask]
+            y = y[mask]
+        
+        X = X.to(self.device)
+        y = y.to(self.device)
+
+        scores = []
+        
+        iterations = N // batch_size
+        if N % batch_size != 0:
+            iterations += 1
+        
+        for i in range(iterations):
+            s = i * batch_size
+            e = i * batch_size + batch_size
+            sub_x = X[s:e]
+            score = self.model.loss(sub_x)
+            scores.append(score)
+            
+        scores = torch.cat(scores)
+        result = (scores.argmax(dim=1) == y).to(torch.float).mean().item()
+        
+        return result
+
     
     def _loss(self):
         """
@@ -112,6 +146,7 @@ class Solver:
                             next_config = self.update_rule(w,dw,config)
                             param.configs[p] = next_config
                         param.reset_grads()
+                        # return
                     #     break
                     # break
                 else:
@@ -124,7 +159,7 @@ class Solver:
                         layer.configs[p] = next_config
                     layer.reset_grads()
                 # break
-        
+    
     def train(self):
         """
             train the data using the model.
@@ -133,9 +168,40 @@ class Solver:
         N = self.X_train.shape[0]
         n_batch_iteration = N // self.batch_size
         n_iterations = n_batch_iteration * self.epochs
-        
+        print(f"Number of Iterations: {n_iterations}")
+
         for t in range(n_iterations):
             self._loss()
             if t % self.print_every == 0:
                 print(f"train: {t} loss: {self.loss_history[-1]}", )
-            # break
+            # if t == 1:
+            #     break
+            
+            end_of_epoch = (t + 1) % n_batch_iteration == 0
+            
+            # Fix: refactor: for loops in more than two places
+            # Fix: cosine learning rate decay to other function
+            if end_of_epoch:
+                self.epoch += 1
+                for layer in self.model.param_layers:
+                    if isinstance(layer, BasicBlock):
+                        for param in layer.param_layers:
+                            for p in param.configs:
+                                param.configs[p]["learning_rate"] = 0.5 * param.configs[p]["learning_rate"] * (1 + math.cos(math.pi * self.epoch / self.epochs))
+                    else:
+                        for p in layer.params:
+                            layer.configs[p]["learning_rate"] = 0.5 * layer.configs[p]["learning_rate"] * (1 + math.cos(math.pi * self.epoch / self.epochs))
+                # self.eta_min + (base_lr - self.eta_min) * (1 + math.cos(math.pi * self.T_cur / self.T_i)) / 2
+            
+            with torch.no_grad():
+                first = t == 0
+                end = t == n_batch_iteration - 1
+
+                if end_of_epoch or first or end:
+                    training_accuracy = self.check_accuracy(self.X_train, self.y_train)   
+                    val_accuracy = self.check_accuracy(self.X_val, self.y_val)   
+                    
+                    print(f"Epoch {self.epoch} / {self.epochs}: Training Accuracy: {training_accuracy:.3f}, Validation Accuracy: {val_accuracy:.3f}")
+                    
+                    self.training_acc_history.append(training_accuracy)
+                    self.val_acc_history.append(val_accuracy)

@@ -26,7 +26,11 @@ class ResNet:
         self.device = device
         self.dtype = dtype
         
-        # N, 3, 32, 32
+        # self.block1 = self._define_blocks(3, 64, block, n_blocks[0], stride=2)
+        # self.block2 = self._define_blocks(64, 128, block, n_blocks[1],  stride=2)
+        # self.block3 = self._define_blocks(128, 256, block, n_blocks[2],  stride=2)
+        # self.block4 = self._define_blocks(256, 512, block,n_blocks[3],  stride=2)
+
         self.block1 = self._define_blocks(3, 8, block, n_blocks[0], stride=2)
         # N, 8, 16, 16
         self.block2 = self._define_blocks(8, 16, block, n_blocks[1],  stride=2)
@@ -61,7 +65,7 @@ class ResNet:
         return blocks
         
         
-    def loss(self, X, y):
+    def loss(self, X, y=None):
         """
             Complete the forward pass and back propagation cycle. Compute the loss and gradients
             
