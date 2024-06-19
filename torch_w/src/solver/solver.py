@@ -5,6 +5,7 @@ import math
 import torch
 from src.models.ResNet import ResNet
 from src.layers.basicblock import BasicBlock
+from src.layers.bottleneck import Bottleneck
 
 class Solver:
     """
@@ -46,7 +47,7 @@ class Solver:
         
         self.epochs = kwargs.pop("epochs", 5)
         self.batch_size = kwargs.pop("batch_size", 100)
-        self.lr_decay = kwargs.pop("lr_decay", 0)
+        self.lr_decay = kwargs.pop("lr_decay", None)
         self.update_rule = kwargs.pop("update_rule", self.sgd)
         self.device = kwargs.pop("device", "cpu")
         self.dtype = kwargs.pop("dtype", torch.float32)
@@ -69,7 +70,7 @@ class Solver:
             #  for param in layer.param_layers:
                 #  for p in param.params:
         for layer in self.model.param_layers:
-            if isinstance(layer, BasicBlock):
+            if isinstance(layer, (BasicBlock, Bottleneck)):
                 for param in layer.param_layers:
                     for p in param.configs:
                         param.configs[p] = {k:v for k, v in self.optim_config.items()}
@@ -137,7 +138,7 @@ class Solver:
         
         with torch.no_grad():
             for layer in self.model.param_layers:
-                if isinstance(layer, BasicBlock):
+                if isinstance(layer, (BasicBlock, Bottleneck)):
                     for param in layer.param_layers:
                         for p in param.params:
                             w = param.params[p]
@@ -183,15 +184,16 @@ class Solver:
             # Fix: cosine learning rate decay to other function
             if end_of_epoch:
                 self.epoch += 1
-                for layer in self.model.param_layers:
-                    if isinstance(layer, BasicBlock):
-                        for param in layer.param_layers:
-                            for p in param.configs:
-                                param.configs[p]["learning_rate"] = 0.5 * param.configs[p]["learning_rate"] * (1 + math.cos(math.pi * self.epoch / self.epochs))
-                    else:
-                        for p in layer.params:
-                            layer.configs[p]["learning_rate"] = 0.5 * layer.configs[p]["learning_rate"] * (1 + math.cos(math.pi * self.epoch / self.epochs))
-                # self.eta_min + (base_lr - self.eta_min) * (1 + math.cos(math.pi * self.T_cur / self.T_i)) / 2
+                if self.lr_decay:
+                    for layer in self.model.param_layers:
+                        if isinstance(layer, (BasicBlock, Bottleneck)):
+                            for param in layer.param_layers:
+                                for p in param.configs:
+                                    param.configs[p]["learning_rate"] = 0.5 * param.configs[p]["learning_rate"] * (1 + math.cos(math.pi * self.epoch / self.epochs))
+                        else:
+                            for p in layer.params:
+                                layer.configs[p]["learning_rate"] = 0.5 * layer.configs[p]["learning_rate"] * (1 + math.cos(math.pi * self.epoch / self.epochs))
+                    self.eta_min + (base_lr - self.eta_min) * (1 + math.cos(math.pi * self.T_cur / self.T_i)) / 2
             
             with torch.no_grad():
                 first = t == 0

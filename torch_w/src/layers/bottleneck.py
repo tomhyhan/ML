@@ -9,28 +9,31 @@ class Bottleneck:
         
         Conv1x1 - BN - Relu - Conv3x3 - BN - Relu - Conv1x1 - Bn - indentity - relu
     """
+    
+    expansion = 4
+    
     def __init__(self, C_in, C_out, stride, base_width=64, groups=1, device="cpu", dtype=torch.float32, training=True):
         
         self.down_sample = False
-        self.expansion = 4
         self.training = training
         
         if stride == 2 or C_in != C_out * self.expansion:
             self.down_sample = True
-
         width = int(C_out * (base_width / 64.0)) * groups
-        
+
         self.conv1 = Conv(C_in=C_in, C_out=width, k=1, device=device, dtype=dtype)
         self.bn1 = BatchNorm(C=width, device=device, dtype=dtype)
         self.relu1 = ReLU()
         
-        self.conv2 = Conv(C_in=width, C_out=width, k=3, stride=stride, padding=1,device=device, dtype=dtype)
+        self.conv2 = Conv(C_in=width, C_out=width, k=3, stride=stride, padding=1, groups=groups, device=device, dtype=dtype)
         self.bn2 = BatchNorm(C=width, device=device, dtype=dtype)
         self.relu2 = ReLU()
 
         self.conv3 = Conv(C_in=width, C_out=C_out * self.expansion, k=1, device=device, dtype=dtype)
         self.bn3 = BatchNorm(C=C_out * self.expansion, device=device, dtype=dtype)        
         self.relu3 = ReLU()
+        # print(width, C_out * self.expansion)
+        # print("end")
         
         self.param_layers = [
             self.conv1, self.bn1, 
@@ -52,12 +55,12 @@ class Bottleneck:
                 X: input data
         """
         identity_X = X.clone()
-        
         out = self.conv1.forward(X)
         out = self.bn1.forward(out, training=self.training)
         out = self.relu1.forward(out)
-        
+
         out = self.conv2.forward(out)
+
         out = self.bn2.forward(out, training=self.training)
         out = self.relu2.forward(out)
         

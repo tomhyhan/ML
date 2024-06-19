@@ -9,7 +9,7 @@ class Conv:
     """
         2d Convolutional neural network. Implemented using torch's conv2d for faster computation.
     """
-    def __init__(self, C_out, C_in, k, stride=1, padding=0, groups=1,weight_scale=True, relu=True, device="cpu", dtype=torch.float32):
+    def __init__(self, C_out, C_in, k, stride=1, padding=0, groups=1, weight_scale=True, relu=True, device="cpu", dtype=torch.float32):
         """
             Initialization of Conv layer:
                 weight (filter): (C_out, C_in, k, k) if weight_scalse is set to True, initializa weight with kaiming weight initialization. Otherwise, initialize normally with torch.radn.

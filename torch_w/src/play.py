@@ -11,6 +11,13 @@ import torch
         
 # t = testing()
 # print(t.training)
-
-l = torch.nn.Linear(5,3)
-print([i for i in l.named_parameters()])
+X = torch.randn(10,3,32,32)
+conv = torch.nn.Conv2d(3,128, 1)
+# print([i for i in l.named_parameters()])
+# print(conv.weight.shape)
+outx = conv(X)
+# print(outx.shape)
+conv2 = torch.nn.Conv2d(128,128, 3, groups=32, stride=2, padding=1)
+print("w:", conv2.weight.shape)
+out_x = conv2(outx)
+print(out_x.shape)

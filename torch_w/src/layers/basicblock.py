@@ -13,7 +13,8 @@ class BasicBlock:
         
         Conv - BN - Relu - Conv - BN - Identity - Relu
     """
-    
+    expansion = 1
+        
     def __init__(self, C_in, C_out, stride, device="cpu", dtype=torch.float32, base_width=64, groups=1, training=True):
         """
             initialization of basic block with differemt types of layers
