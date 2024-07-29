@@ -42,7 +42,7 @@ class DecoderBlock(nn.Module):
         out1 = self.dropout(out1)
         out2 = self.norm1(out1 + dec_inp)
         
-        out3 = self.crossattn(out2, enc_inp, enc_inp)
+        out3, _ = self.crossattn(out2, enc_inp, enc_inp)
         out3 = self.dropout(out3)
         out4 = self.norm2(out2 + out3)
         
@@ -75,4 +75,5 @@ class Decoder(nn.Module):
         out = dec_inp.clone()
         for encoder in self.layers:
             out = encoder(out, enc_inp, mask)
+        out = self.proj_to_vocab(out)
         return out

@@ -28,20 +28,38 @@ class Transformers(nn.Module):
                 ans: (N, K)
                 ans_pos: (N, K, M)
         """
-        _, K = ques.shape
+        _, K = ans.shape
         ques_emb = self.emb_layer(ques)
         ques_emb_inp = ques_emb + ques_pos 
         
         ans_emb = self.emb_layer(ans)
         ans_emb_inp = ans_emb[:, :-1] + ans_pos[:, :-1]
 
-        mask = get_subsequent_mask(K)
+        mask = get_subsequent_mask(K-1)
 
         enc_out = self.encoder(ques_emb_inp)
         dec_out = self.decoder(ans_emb_inp, enc_out, mask)
         
         return dec_out
     
-if "main" == __name__:
+if "__main__" == __name__:
+    num_heads = 2
+    emp_dim = 4
+    feedforward_dim = 16
+    batches = 3
+    vocab_len = 7
+    num_enc_layers = 4
+    num_dec_layers = 4
+    dropout = 0.0
     
-    pass
+    ques =  torch.randint(0, vocab_len, (batches, 9))
+    ques_pos =  torch.randn(batches, 9, emp_dim)
+    ans =  torch.randint(0, vocab_len, (batches, 5))
+    ans_pos =  torch.randn(batches, 5, emp_dim)
+
+    model = Transformers(num_heads, emp_dim, feedforward_dim, dropout, num_enc_layers, num_dec_layers, vocab_len)
+    print(ques)
+    y = model(ques.long(), ques_pos, ans.long(), ans_pos)
+    
+    print(y.shape)
+    
