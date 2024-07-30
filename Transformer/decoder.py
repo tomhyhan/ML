@@ -70,10 +70,10 @@ class Decoder(nn.Module):
 
     def forward(self, dec_inp, enc_inp, mask=None):
         """
-            The implementation of the forward pass of the encoder of the Tranformer model
+            The implementation of the forward pass of the decoder of the Tranformer model
         """
         out = dec_inp.clone()
-        for encoder in self.layers:
-            out = encoder(out, enc_inp, mask)
+        for decoder in self.layers:
+            out = decoder(out, enc_inp, mask)
         out = self.proj_to_vocab(out)
         return out

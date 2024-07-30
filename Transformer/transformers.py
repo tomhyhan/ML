@@ -13,6 +13,7 @@ class Transformers(nn.Module):
             implements transformer model with encoder with decoder
         """
         super().__init__()
+        self.vocab_len = vocab_len
         
         self.emb_layer = nn.Embedding(vocab_len, emp_dim, device=device, dtype=dtype)
         self.encoder = Encoder(num_enc_layer, num_heads, emp_dim, feedforward_dim, dropout, device, dtype)
@@ -39,14 +40,14 @@ class Transformers(nn.Module):
 
         enc_out = self.encoder(ques_emb_inp)
         dec_out = self.decoder(ans_emb_inp, enc_out, mask)
-        
-        return dec_out
+        # print("dec_out", dec_out.shape)
+        return dec_out.reshape(-1, self.vocab_len)
     
 if "__main__" == __name__:
     num_heads = 2
-    emp_dim = 4
+    emp_dim = 16
     feedforward_dim = 16
-    batches = 3
+    batches = 128
     vocab_len = 7
     num_enc_layers = 4
     num_dec_layers = 4
@@ -58,8 +59,9 @@ if "__main__" == __name__:
     ans_pos =  torch.randn(batches, 5, emp_dim)
 
     model = Transformers(num_heads, emp_dim, feedforward_dim, dropout, num_enc_layers, num_dec_layers, vocab_len)
-    print(ques)
+
     y = model(ques.long(), ques_pos, ans.long(), ans_pos)
     
     print(y.shape)
+    print(y.dtype)
     
