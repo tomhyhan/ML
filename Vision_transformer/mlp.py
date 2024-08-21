@@ -8,9 +8,9 @@ class MLP(nn.Module):
         self.embedding_dim = embedding_dim
         
         self.mlp = nn.Sequential(
-            nn.Linear(forward_dim, embedding_dim),
+            nn.Linear(embedding_dim, forward_dim),
             nn.GELU(),
-            nn.Linear(embedding_dim, forward_dim)
+            nn.Linear(forward_dim, embedding_dim)
         )
         
     def forward(self, x):

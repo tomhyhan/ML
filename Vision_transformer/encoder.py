@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from mlp import MLP
+from torchvision.models.vision_transformer import MLPBlock
 
 class EncoderBlock(nn.Module):
     def __init__(self,
@@ -17,7 +18,9 @@ class EncoderBlock(nn.Module):
         
         # norm - mlp layer - dropout - 
         self.norm2 = nn.LayerNorm(embedding_dim)
+        
         self.mlp = MLP(embedding_dim, forward_dim)
+        # self.mlp = MLPBlock(embedding_dim, forward_dim, dropout)
         
         self.dropout = nn.Dropout(dropout)
         
@@ -25,7 +28,7 @@ class EncoderBlock(nn.Module):
         out = x.clone()
         
         out = self.norm1(out)
-        out = self.attn(out, out, out, need_weights=False)
+        out, _ = self.attn(out, out, out, need_weights=False)
         out = self.dropout(out)
         out1 = out + x
         
@@ -55,13 +58,17 @@ class Encoder(nn.Module):
         ])
         
         self.norm = nn.LayerNorm(embedding_dim)
-        self.test = nn.Linear(10,10)
         
     def forward(self, x):
-        pass
+        out = x.clone()
+        out += self.pos_embedding
+        for layer in self.layers:
+            out = layer(out)
+        out = self.norm(out)
+        return out
     
-if __name__ == "__main__":
-    encoder = Encoder(10, 32, 64, 4, 4, 0.5, 0.5)
-    print(encoder.test.weight.shape)
-    print(encoder.test)
-    print(encoder.pos_embedding.shape)
+# if __name__ == "__main__":
+#     encoder = Encoder(10, 32, 64, 4, 4, 0.5, 0.5)
+#     print(encoder.test.weight.shape)
+#     print(encoder.test)
+#     print(encoder.pos_embedding.shape)
