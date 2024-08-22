@@ -13,6 +13,11 @@ class MLP(nn.Module):
             nn.Linear(forward_dim, embedding_dim)
         )
         
+        for layer in self.mlp:
+            if isinstance(layer, nn.Linear):
+                nn.init.xavier_uniform_(layer.weight)
+                nn.init.normal_(layer.bias, std=1e-6)
+                
     def forward(self, x):
         out = x.clone()
         out = self.mlp(out)
