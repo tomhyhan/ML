@@ -21,7 +21,7 @@ class SimplePatchMerging(nn.Module):
     def forward(self, x):
         N, H, W, C = x.shape
         
-        x = F.pad(x, (0,0,0,W%2,0,H%2))
+        x = F.pad(x, (0, 0, 0, W%2, 0, H%2))
         
         x0 = x[:, 0::2, 0::2]
         x1 = x[:, 0::2, 1::2]
