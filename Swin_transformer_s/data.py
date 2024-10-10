@@ -22,7 +22,7 @@ def fetch_cifar10(n_train, n_test):
 
     return train_x, train_y, test_x, test_y
     
-def preprocess_cifar10(n_train=None, n_test=None):
+def preprocess_cifar10(n_train=None, n_test=None, validation_ratio=0.2):
     train_x, train_y, test_x, test_y = fetch_cifar10(n_train, n_test)
     
     # zero center
@@ -31,8 +31,6 @@ def preprocess_cifar10(n_train=None, n_test=None):
     test_x -= x_train_mean
     
     N = train_x.shape[0]
-    # fixed standard validation ratio
-    validation_ratio = 0.2
     
     n_validation_split = int(N * validation_ratio)
     n_train_split = N - n_validation_split

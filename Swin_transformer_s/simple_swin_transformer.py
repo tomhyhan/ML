@@ -64,6 +64,9 @@ class SimpleSwinTransformer(nn.Module):
                 norm_layer(emb_dim)     
             )
         )
+        # ----
+        # self.conv = nn.Conv2d(3, emb_dim, kernel_size=(patch_size[0], patch_size[1]), stride=(patch_size[0], patch_size[1]))
+        # self.permute = torchvision.ops.misc.Permute([0,2,3,1])
         
         total_stage_blocks = sum(depths)
         stage_block_id = 0
@@ -87,9 +90,9 @@ class SimpleSwinTransformer(nn.Module):
                     )
                 )     
                 stage_block_id += 1
-                if i_stage < len(depths) - 1:
-                    layers.append(downsample_layer(dim, norm_layer))
             layers.append(nn.Sequential(*stages))          
+            if i_stage < len(depths) - 1:
+                layers.append(downsample_layer(dim, norm_layer))
         self.features = nn.Sequential(*layers)
         
         num_features = emb_dim * 2**(len(depths) - 1)

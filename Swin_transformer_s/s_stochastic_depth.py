@@ -15,7 +15,7 @@ def stochastic_depth(input, p, mode, training=True):
     else:
         size = [1] * input.ndim
         
-    noise = torch.empty(size, input.device, input.dtype)
+    noise = torch.empty(size, device=input.device, dtype=input.dtype)
     noise = noise.bernoulli_(survival_rate)
     if survival_rate > 0.0:
         noise.div_(survival_rate)
@@ -24,6 +24,7 @@ def stochastic_depth(input, p, mode, training=True):
 class SimpleStochasticDepths(nn.Module):
     
     def __init__(self, p, mode):
+        super().__init__()
         self.p = p
         self.mode = mode
     
