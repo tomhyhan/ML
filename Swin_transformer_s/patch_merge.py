@@ -28,6 +28,7 @@ class SimplePatchMerging(nn.Module):
         x2 = x[:, 1::2, 0::2]
         x3 = x[:, 1::2, 1::2]
         
+        # result -> H/2 W/2 C*4
         x = torch.cat([x0, x1, x2, x3], dim=-1)
 
         x = self.norm(x)
