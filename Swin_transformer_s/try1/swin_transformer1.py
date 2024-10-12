@@ -42,11 +42,19 @@ class SwinTransformer1(nn.Module):
         for i in range(len(depths)):
             sw_blocks = []
             emb_dim *= 2 ** i
-            for depth in depths[i]:
+            for depth in range(depths[i]):
                 s_dropout = stocastic_dropout * (depth_id / (total_depth - 1))
                 sw_blocks.append(
-                    # fill this in
-                    block()
+                    block(
+                        emb_dim,
+                        window_size,
+                        shift_size=[0 if i % 2 == 0 else L // 2 for L in window_size],
+                        num_heads=num_heads[depth],
+                        mlp_ratio=mlp_ratio,
+                        stocastic_dropout_p=s_dropout,
+                        dropout=dropout,
+                        norm_layer=norm_layer
+                    )
                 )
             depth_id += 1
             layers.append(nn.Sequential(*sw_blocks))
