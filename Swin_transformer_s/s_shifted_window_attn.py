@@ -110,9 +110,9 @@ def shifted_window_attention(
     
     shift_size = shift_size.copy()
     
-    if window_size[0] > shift_size[0]:
+    if window_size[0] >= pad_H:
         shift_size[0] = 0
-    if window_size[1] > shift_size[1]:
+    if window_size[1] >= pad_W:
         shift_size[1] = 0
 
     # cyclic shift: rolling
