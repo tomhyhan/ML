@@ -22,6 +22,7 @@ class SwinTransformer1(nn.Module):
         mlp_ratio,
         stocastic_dropout,
         dropout=0.1,
+        num_classes=10
     ):
         super().__init__()
         
@@ -62,8 +63,24 @@ class SwinTransformer1(nn.Module):
                 layers.append(PatchMerge(emb_dim, norm_layer))
         # processing Swin Transformer blocks
         self.features = nn.Sequential(*layers)
+        num_features = emb_dim * 2 ** (len(depth) - 1)
+        self.norm = norm_layer(num_features)
+        self.permute = Permute([0,3,1,2])
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.flatten = nn.Flatten(1)
+        self.head = nn.Linear(num_features, num_classes)
 
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.trunc_normal_(m.weight, std=0.02)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
 
-
-    def forward(self):
-        pass
+    def forward(self, x):
+        x = self.features(x)
+        x = self.norm(x)
+        x = self.permute(x)
+        x = self.avgpool(x)
+        x = self.flatten(x)
+        x = self.head(x)
+        return x

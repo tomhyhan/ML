@@ -9,13 +9,15 @@ coords_flatten = coords_stack.flatten(1)
 coords_flatten = coords_flatten[:,:,None] - coords_flatten[:,None,:]
 coords_perm = coords_flatten.permute(1,2,0)
 
+print(coords_flatten.shape)
+print(coords_perm.shape)
 coords_perm[:,:,0] += window_size[0] - 1
 coords_perm[:,:,1] += window_size[1] - 1
 coords_perm[:,:,0] *= 2*window_size[1] - 1
 coords_index = coords_perm.sum(-1).flatten()
-print(coords_index.shape)
-print(coords_index)
+# print(coords_index.shape)
+# print(coords_index.)
 
-table = torch.zeros((2 * window_size[0] - 1) * (2 * window_size[0] - 1), 1)
+table = torch.zeros((2 * window_size[0] - 1) * (2 * window_size[0] - 1), 2)
 
 print(table[coords_index].shape)
