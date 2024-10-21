@@ -106,3 +106,19 @@ class SimpleMaxVIT(nn.Module):
             )
             input_size = self.blocks[-1].grid_size
             p_idx += num_layers
+
+        self.classifier = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.LayerNorm(block_channels[-1]),
+            nn.Linear(block_channels[-1], block_channels[-1]),
+            nn.Tanh(),
+            nn.Linear(block_channels[-1], num_classes, bias=False)           
+        )
+        
+    def forward(self, x):
+        x = self.stem(x)
+        for block in self.blocks:
+            x = block(x)
+        x = self.classifier(x)
+        return x
