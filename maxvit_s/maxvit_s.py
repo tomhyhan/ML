@@ -68,7 +68,7 @@ class SimpleMaxVIT(nn.Module):
                 3,
                 1,
                 norm_layer=None,
-                activation_layer=activation_layer,
+                activation_layer=None,
                 bias=True
             )
         )
