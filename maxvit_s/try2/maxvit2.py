@@ -73,6 +73,8 @@ class MaxVIT2(nn.Module):
                     n_layer=layers,
                     partition_size=partition_size,
                     head_dim=head_dim,
+                    norm_layer=norm_layer,
+                    activation_layer=activation_layer,
                     grid_size=input_size,
                     sqeeze_ratio=sqeeze_ratio,
                     expension_ratio=expension_ratio,
