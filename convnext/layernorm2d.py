@@ -1,27 +1,10 @@
-import torch
 from torch import nn
+import  torch.nn.functional as F
+from torch import Tensor
 
-# block_setting = [
-#     CNBlockConfig(96, 192, 3),
-#     CNBlockConfig(192, 384, 3),
-#     CNBlockConfig(384, 768, 9),
-#     CNBlockConfig(768, None, 3),
-# ]
-# stochastic_depth_prob = kwargs.pop("stochastic_depth_prob", 0.1)
-
-class ConvNeXt(nn.Module):
-    def __init__(
-        self,
-        block_setting,
-        stochastic_depth_prob,
-        layer_scale,
-        num_classes,
-        block,
-        norm_layer,
-    ):
-        super().__init__()
-        
-        if block is None:
-            block = CNBlock
-        
-        
+class LayerNorm2d(nn.LayerNorm):
+    def forward(self, x: Tensor):
+        x = x.permute(0,2,3,1)
+        x = F.layer_norm(self.normalized_shape, self.weight, self.bias, self.eps)
+        x = x.permute(0,3,1,2)
+        return x
