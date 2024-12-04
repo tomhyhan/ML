@@ -142,15 +142,21 @@ class DownSample(nn.Module):
         nn. init.zeros_(self.down.bias)
 
     def forward(self, x):
+        x = self.main(x)
+        return x
 
 class UpSample(nn.Module):
-    def __init__(self):
+    def __init__(self, dim):
         super().__init__()
-
+        self.up = nn.ConvTranspose2d(dim, dim, 4, 2, 1)
+        
     def initialize(self):
         nn. init.xavier_uniform_(self.up.weight)
         nn. init.zeros_(self.up.bias)
 
+    def forward(self, x):
+        return self.up(x)
+    
 class Unet(nn.Module):
     def __init__(
         self,
