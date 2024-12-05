@@ -224,6 +224,25 @@ class Unet(nn.Module):
         nn.init.xavier_uniform_(self.tail[-1].weight, gain=1e-5)
         nn.init.zeros_(self.tail[-1].bias)
     
+    def forward(self, x):
+        temb = self.time_embedding(x)
+        
+        out = self.head(x)
+        outs = [out]
+        for block in self.downblocks:
+            out = block(out, temb)
+            outs.append(out)
+
+        out = self.middle_blocks(out)
+        
+        for block in self.upblocks:
+            if isinstance(block, ResBlock):
+                out = torch.concat([block, outs.pop()], dim=1)
+            out = block(out, temb)
+            
+        out = self.tail(out)
+        
+        return out
     
     
 if __name__ == "__main__":
