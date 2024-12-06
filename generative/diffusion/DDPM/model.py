@@ -224,8 +224,8 @@ class Unet(nn.Module):
         nn.init.xavier_uniform_(self.tail[-1].weight, gain=1e-5)
         nn.init.zeros_(self.tail[-1].bias)
     
-    def forward(self, x):
-        temb = self.time_embedding(x)
+    def forward(self, x, t):
+        temb = self.time_embedding(t)
         
         out = self.head(x)
         outs = [out]
@@ -233,7 +233,8 @@ class Unet(nn.Module):
             out = block(out, temb)
             outs.append(out)
 
-        out = self.middle_blocks(out)
+        for block in self.middle_blocks:
+            out = block(out, temb)
         
         for block in self.upblocks:
             if isinstance(block, ResBlock):
