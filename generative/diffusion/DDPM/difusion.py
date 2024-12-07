@@ -92,7 +92,6 @@ class GuassianDiffusionSampler(nn.Module):
         posterior_log_var_clipped = extract(self.posterior_log_var_clipped, t, xt.shape) 
         
         return posterior_mean ,posterior_log_var_clipped 
-
     
     def p_mean_variance(self, xt, t):
         model_log_var = {
