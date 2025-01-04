@@ -34,7 +34,8 @@ def train(args):
     empty_text_embed = None
     condition_types = []
     condition_config = diffusion_model_config.condition_config
-    
+    print(condition_config)
+    print(dataset_config['im_path'], dataset_config['im_size'], dataset_config['im_channels'])
     if condition_config is not None:
         condition_types = condition_config.condition_types
         if "text" in condition_types:
