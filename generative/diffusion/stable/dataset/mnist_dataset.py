@@ -14,6 +14,8 @@ def load_latents(latent_path):
     for fname in glob.glob(os.path.join(latent_path, "*.pkl")):
         s = pickle.load(open(fname, 'rb'))
         for k, v in s.items():
+            k = k.replace("/content/drive/My Drive/STABLE_DIFFUSION2/", "")
+            # print(k)
             latent_maps[k] = v[0]
     return latent_maps
 
@@ -72,6 +74,7 @@ class MnistDataset(Dataset):
             fnames += glob.glob(os.path.join(im_path, d_name, '*.{}'.format('jpg')))
             fnames += glob.glob(os.path.join(im_path, d_name, '*.{}'.format('jpeg')))
             for fname in fnames:
+                fname = fname.replace("\\", '/')
                 ims.append(fname)
                 if 'class' in self.condition_types:
                     labels.append(int(d_name))
@@ -89,6 +92,8 @@ class MnistDataset(Dataset):
         #######################################
         
         if self.use_latents:
+            # print("im name:", self.images[index])
+            # print(self.latent_maps["data/mnist/train/images/4/20430.png"])
             latent = self.latent_maps[self.images[index]]
             if len(self.condition_types) == 0:
                 return latent

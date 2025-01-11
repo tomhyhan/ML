@@ -1,10 +1,13 @@
 import os
-import torch
 import yaml
+import glob
+import pickle
+import torch
 from torch.utils.data import DataLoader
 import torchvision
 from torchvision.utils import make_grid
 from argparse import ArgumentParser
+from tqdm import tqdm
 
 from models.vqvae import VQVAE
 from dataset.mnist_dataset import MnistDataset
@@ -75,6 +78,29 @@ def infer(args):
         encoder_grid.save(os.path.join(train_config["task_name"], "encoder_samples.png"))
         decoder_grid.save(os.path.join(train_config["task_name"], "decoder_samples.png"))
         
+        if train_config["save_latents"]:
+            latent_path = os.path.join(train_config["task_name"], train_config["vqvae_latent_dir_name"])
+            latent_fnames = glob.glob(os.path.join(train_config["task_name"], train_config["vqvae_latent_dir_name"], "*.pkl"))
+            
+            if not os.path.exists(latent_path):
+                os.mkdir(latent_path)
+                
+            fname_latent_map = {}
+            part_count = 0
+            count = 0
+            for idx, im in enumerate(tqdm(data_loader)):
+                encoded_output, _ = model.encode(im.float().to(device))
+                fname_latent_map[im_dataset.images[idx]] = encoded_output.cpu()
+                
+                if (count+1)%1000 == 0:
+                    pickle.dump(fname_latent_map, open(os.path.join(latent_path, f"{part_count}.pkl"), "wb"))
+                    part_count += 1
+                    fname_latent_map = {}
+            if len(fname_latent_map) > 0:
+                pickle.dump(fname_latent_map, open(os.path.join(latent_path, f"{part_count}.pkl"), "wb"))
+            
+            print("Done Saving latents")
+                
 if __name__ == "__main__":
     parser = ArgumentParser(description="infer vqvae")
     parser.add_argument("--config", dest="config_path", default= "config/mnist.yaml", type=str)
