@@ -39,20 +39,22 @@ class VQVAE(nn.Module):
         self.encoder_layers = nn.ModuleList([])
         for i in range(len(self.down_channels) - 1):
             self.encoder_layers.append(DownBlock(self.down_channels[i], self.down_channels[i + 1],
-                                                 t_emb_dim=None, down_sample=self.down_sample[i],
-                                                 num_heads=self.num_heads,
-                                                 num_layers=self.num_down_layers,
-                                                 attn=self.attns[i],
-                                                 norm_channels=self.norm_channels))
+            t_emb_dim=None, down_sample=self.down_sample[i],
+            num_heads=self.num_heads,
+            num_layers=self.num_down_layers,
+            attn=self.attns[i],
+            norm_channels=self.norm_channels))
         
         self.encoder_mids = nn.ModuleList([])
         for i in range(len(self.mid_channels) - 1):
-            self.encoder_mids.append(MidBlock(self.mid_channels[i], self.mid_channels[i + 1],
-                                              t_emb_dim=None,
-                                              num_heads=self.num_heads,
-                                              num_layers=self.num_mid_layers,
-                                              norm_channels=self.norm_channels))
-        
+            self.encoder_mids.append(MidBlock(
+                self.mid_channels[i], 
+                self.mid_channels[i + 1],
+                t_emb_dim=None,
+                num_heads=self.num_heads,
+                num_layers=self.num_mid_layers,
+                norm_channels=self.norm_channels))
+
         self.encoder_norm_out = nn.GroupNorm(self.norm_channels, self.down_channels[-1])
         self.encoder_conv_out = nn.Conv2d(self.down_channels[-1], self.z_channels, kernel_size=3, padding=1)
         
@@ -81,11 +83,11 @@ class VQVAE(nn.Module):
         self.decoder_layers = nn.ModuleList([])
         for i in reversed(range(1, len(self.down_channels))):
             self.decoder_layers.append(UpBlock(self.down_channels[i], self.down_channels[i - 1],
-                                               t_emb_dim=None, up_sample=self.down_sample[i - 1],
-                                               num_heads=self.num_heads,
-                                               num_layers=self.num_up_layers,
-                                               attn=self.attns[i-1],
-                                               norm_channels=self.norm_channels))
+            t_emb_dim=None, up_sample=self.down_sample[i - 1],
+            num_heads=self.num_heads,
+            num_layers=self.num_up_layers,
+            attn=self.attns[i-1],
+            norm_channels=self.norm_channels))
         
         self.decoder_norm_out = nn.GroupNorm(self.norm_channels, self.down_channels[0])
         self.decoder_conv_out = nn.Conv2d(self.down_channels[0], im_channels, kernel_size=3, padding=1)
