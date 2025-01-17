@@ -5,10 +5,19 @@ import torch
 import torchvision
 import numpy as np
 from PIL import Image
-from utils.diffusion_utils import load_latents
 from tqdm import tqdm
 from torch.utils.data.dataset import Dataset
+import pickle
 
+def load_latents(latent_path):
+    latent_maps = {}
+    for fname in glob.glob(os.path.join(latent_path, "*.pkl")):
+        s = pickle.load(open(fname, 'rb'))
+        for k, v in s.items():
+            # k = k.replace("/content/drive/My Drive/STABLE_DIFFUSION2/", "")
+            # print(k)
+            latent_maps[k] = v[0]
+    return latent_maps
 
 class CelebDataset(Dataset):
     r"""

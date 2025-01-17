@@ -88,7 +88,6 @@ def train(args):
     for epoch_idx in range(num_epochs):
         recon_losses = []
         codebook_losses = []
-        #commitment_losses = []
         perceptual_losses = []
         disc_losses = []
         gen_losses = []
