@@ -62,12 +62,8 @@ class Unet(nn.Module):
         if self.image_cond:
             # Map the mask image to a N channel image and
             # concat that with input across channel dimension
-            self.cond_conv_in = nn.Conv2d(in_channels=self.im_cond_input_ch,
-                                          out_channels=self.im_cond_output_ch,
-                                          kernel_size=1,
-                                          bias=False)
-            self.conv_in_concat = nn.Conv2d(im_channels + self.im_cond_output_ch,
-                                            self.down_channels[0], kernel_size=3, padding=1)
+            self.cond_conv_in = nn.Conv2d(in_channels=self.im_cond_input_ch, out_channels=self.im_cond_output_ch, kernel_size=1,bias=False)
+            self.conv_in_concat = nn.Conv2d(im_channels + self.im_cond_output_ch, self.down_channels[0], kernel_size=3, padding=1)
         else:
             self.conv_in = nn.Conv2d(im_channels, self.down_channels[0], kernel_size=3, padding=1)
         self.cond = self.text_cond or self.image_cond or self.class_cond

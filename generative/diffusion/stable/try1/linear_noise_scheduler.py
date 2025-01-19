@@ -10,7 +10,7 @@ class LinearNoiseScheduler(nn.Module):
     ):
         super().__init__()
         
-        self.beta = torch.linspace(beta_end**0.5, beta_start**0.5, time_steps)**2
+        self.betas = torch.linspace(beta_end**0.5, beta_start**0.5, time_steps)**2
         
         self.alphas = 1 - self.beta
         
@@ -35,4 +35,22 @@ class LinearNoiseScheduler(nn.Module):
         # compute x0, mean, variance
         # µ˜t(xt, x0) := (√α¯t−1βt / 1 − α¯t)x0 + (√αt(1 − α¯t−1) / 1 − α¯txt) 
         # β˜t:= (1 − α¯t−1 / 1 − α¯t) βt
-        pass
+        
+        # (xt - (1 − α¯t)I) / √α¯t = x0
+        x0 = (xt - self.one_minus_cum_prod[T]*noise_pred) / torch.sqrt
+        (self.sqrt_alphas_cum_prod[T])
+        x0 = torch.clamp(x0, -1., 1.)
+        
+        mean = (xt - (self.betas[T] / torch.sqrt(self.one_minus_cum_prod[T]))) / torch.sqrt(self.alphas_cum_prod)
+
+        if T == 0:
+            return mean, x0
+        else:
+            # in paper
+            # variance = self.betas[T]
+            
+            variance = (1 - self.alphas_cum_prod[T-1]) / (1 - self.alphas_cum_prod[T]) * self.betas[T]
+            sigma = variance ** 0.5
+            z = torch.randn_like(xt)
+            
+            return mean + z * sigma, x0

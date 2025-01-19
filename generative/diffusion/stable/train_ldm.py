@@ -57,10 +57,7 @@ def get_tokenizer_and_model(model_type, device, eval_mode=True):
         text_model.eval()
     return text_tokenizer, text_model
 
-def get_text_representation(text, text_tokenizer, text_model, device,
-                            truncation=True,
-                            padding='max_length',
-                            max_length=77):
+def get_text_representation(text, text_tokenizer, text_model, device, truncation=True, padding='max_length', max_length=77):
     token_output = text_tokenizer(text,
                                   truncation=truncation,
                                   padding=padding,
@@ -91,8 +88,8 @@ def train(args):
     
     ########## Create the noise scheduler #############
     scheduler = LinearNoiseScheduler(num_timesteps=diffusion_config['num_timesteps'],
-                                     beta_start=diffusion_config['beta_start'],
-                                     beta_end=diffusion_config['beta_end'])
+    beta_start=diffusion_config['beta_start'],
+    beta_end=diffusion_config['beta_end'])
     ###############################################
     
     # Instantiate Condition related components
@@ -109,8 +106,7 @@ def train(args):
             with torch.no_grad():
                 # Load tokenizer and text model based on config
                 # Also get empty text representation
-                text_tokenizer, text_model = get_tokenizer_and_model(condition_config['text_condition_config']
-                                                                     ['text_embed_model'], device=device)
+                text_tokenizer, text_model = get_tokenizer_and_model(condition_config['text_condition_config']['text_embed_model'], device=device)
                 empty_text_embed = get_text_representation([''], text_tokenizer, text_model, device)
             
     im_dataset_cls = {
@@ -183,10 +179,7 @@ def train(args):
             if 'text' in condition_types:
                 with torch.no_grad():
                     assert 'text' in cond_input, 'Conditioning Type Text but no text conditioning input present'
-                    text_condition = get_text_representation(cond_input['text'],
-                                                                 text_tokenizer,
-                                                                 text_model,
-                                                                 device)
+                    text_condition = get_text_representation(cond_input['text'],text_tokenizer,text_model,device)
                     text_drop_prob = get_config_value(condition_config['text_condition_config'],
                                                       'cond_drop_prob', 0.)
                     text_condition = drop_text_condition(text_condition, im, empty_text_embed, text_drop_prob)
