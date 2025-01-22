@@ -174,5 +174,112 @@ class DownBlock(nn.Module):
         return out
 
 class MidBlock(nn.Module):
-    def __init__(self):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        t_emb_dim,
+        num_layers,
+        num_heads,
+        norm_channels,
+        cross_attn,
+        context_dim
+    ):
         super().__init__()
+
+        self.num_layers = num_layers
+        self.t_emb_layer = t_emb_dim
+        self.context_dim = context_dim
+        self.cross_attn = cross_attn
+        
+        self.resnet_conv_1 = nn.ModuleList([
+            nn.Sequential(
+                nn.GroupNorm(norm_channels, in_channels),
+                nn.SiLU(),
+                nn.Conv2d(in_channels if i == 0 else out_channels, out_channels, kernel_size=3, padding=1)
+            ) for i in range(num_layers+1)
+        ])
+        
+        if t_emb_dim is not None:
+            self.t_emb_layer = nn.ModuleList([
+                nn.Sequential(
+                    nn.SiLU(),
+                    nn.Linear(t_emb_dim, out_channels)
+                ) for i in range(num_layers + 1)
+            ])
+            
+        self.resnet_conv_2 = nn.ModuleList([
+            nn.Sequential(
+                nn.GroupNorm(norm_channels, in_channels),
+                nn.SiLU(),
+                nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+            ) for _ in range(num_layers+1)
+        ])
+        
+        self.attention_norms = nn.ModuleList([
+            nn.GroupNorm(norm_channels, out_channels)
+            for _ in range(num_layers)
+        ])
+        
+        self.attentions = nn.ModuleList([
+            nn.MultiheadAttention(out_channels, num_heads, batch_first=True)
+            for _ in range(num_layers)
+        ])
+        
+        if cross_attn:
+            self.cross_attention_norms = nn.ModuleList([
+                nn.GroupNorm(norm_channels, out_channels)
+                for _ in range(num_layers)
+            ])
+            
+            self.cross_attentions = nn.ModuleList([
+                nn.MultiheadAttention(out_channels, num_heads, batch_first=True)
+                for _ in range(num_layers)
+            ])
+            
+            self.cross_attention_projs = nn.ModuleList([
+                nn.Linear(context_dim, out_channels)
+            ])
+            
+        self.residual_conn = nn.ModuleList([
+            nn.Conv2d(in_channels if i == 0 else out_channels, kernel_size=3, padding=1)
+            for i in range(num_layers + 1)
+        ])
+            
+    def forward(self, x, t_emb=None, context=None):
+        out = x
+        
+        resnet_input = out
+        out = self.resnet_conv_1[0](out)
+        if t_emb is not None:
+            out = out + self.t_emb_layer[0](t_emb)[:, :, None, None]
+        out = self.resnet_conv_2[0](out)
+        out = out + self.residual_conn[0](resnet_input)
+        
+        for i in range(self.num_layers):
+            batch_size, channels, h, w = out.shape
+            attn_in = out.reshape(batch_size, channels, h*w)
+            attn_in = self.attention_norms[i](attn_in)
+            attn_in = attn_in.transpose(1,2)
+            attn_out, _ = self.attentions(attn_in, attn_in, attn_in)
+            attn_out = attn_out.tranpose(1,2).reshape(batch_size, channels, h, w)
+            out = out + attn_out
+            
+            if self.cross_attn:
+                batch_size, channels, h, w = out.shape
+                attn_in = out.reshape(batch_size, channels, h*w)
+                attn_in = self.cross_attention_norms[i](attn_in)
+                attn_in = attn_in.transpose(1,2)
+                context_in = self.cross_attention_projs[i](context)
+                attn_out, _ = self.attentions(attn_in, context_in, context_in)
+                attn_out = attn_out.tranpose(1,2).reshape(batch_size, channels, h, w)
+                out = out + attn_out
+
+            resnet_input = out
+            out = self.resnet_conv_1[i+1](out)
+            if t_emb is not None:
+                out = out + self.t_emb_layer[i+1](t_emb)[:, :, None, None]
+            out = self.resnet_conv_2[i+1](out)
+            out = out + self.residual_conn[i+1](resnet_input)
+        
+        return out

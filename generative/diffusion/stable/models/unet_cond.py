@@ -143,8 +143,6 @@ class Unet(nn.Module):
         
         ######## Class Conditioning ########
         if self.class_cond:
-            print(cond_input['class'].shape)
-            print(self.class_emb.weight.shape)
             class_embed = einsum(cond_input['class'].float(), self.class_emb.weight, 'b n, n d -> b d')
             t_emb += class_embed
         ####################################

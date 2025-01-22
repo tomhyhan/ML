@@ -252,7 +252,6 @@ class MidBlock(nn.Module):
                 out_attn, _ = self.cross_attentions[i](in_attn, context_proj, context_proj)
                 out_attn = out_attn.transpose(1, 2).reshape(batch_size, channels, h, w)
                 out = out + out_attn
-                
             
             # Resnet Block
             resnet_input = out

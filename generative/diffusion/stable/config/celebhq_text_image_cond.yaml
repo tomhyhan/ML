@@ -12,7 +12,7 @@ diffusion_params:
 ldm_params:
   down_channels: [ 256, 384, 512, 768 ]
   mid_channels: [ 768, 512 ]
-  down_sample: [ True, True, True ]
+  down_sample: [True, True, True]
   attn_down : [True, True, True]
   time_emb_dim: 512
   norm_channels: 32

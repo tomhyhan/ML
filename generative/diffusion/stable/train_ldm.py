@@ -20,8 +20,6 @@ def drop_text_condition(text_embed, im, empty_text_embed, text_drop_prob):
     if text_drop_prob > 0:
         text_drop_mask = torch.zeros((im.shape[0]), device=im.device).float().uniform_(0,
                                                                                        1) < text_drop_prob
-        assert empty_text_embed is not None, ("Text Conditioning required as well as"
-                                        " text dropping but empty text representation not created")
         text_embed[text_drop_mask, :, :] = empty_text_embed[0]
     return text_embed
 
@@ -119,8 +117,7 @@ def train(args):
                                 im_size=dataset_config['im_size'],
                                 im_channels=dataset_config['im_channels'],
                                 use_latents=True,
-                                latent_path=os.path.join(train_config['task_name'],
-                                                         train_config['vqvae_latent_dir_name']),
+                                latent_path=os.path.join(train_config['task_name'], train_config['vqvae_latent_dir_name']),
                                 condition_config=condition_config)
     
     data_loader = DataLoader(im_dataset,

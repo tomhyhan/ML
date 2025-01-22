@@ -16,6 +16,26 @@ from models.vqvae import VQVAE
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+def drop_image_condition(image_condition, im, im_drop_prob):
+    if im_drop_prob > 0:
+        image_drop_mask = torch.zeros(im.size(0), 1, 1, 1).uniform_(0,1) > im_drop_prob
+        return image_condition * image_drop_mask
+    else:
+        return image_condition
+
+def drop_text_condition(text_embed, im, empty_text_embed, text_drop_prob):
+    if text_drop_prob:
+        text_drop_mask = torch.zeros(im.size(0)).uniform_(0, 1) < text_drop_prob
+        text_embed[text_drop_mask, :, :] = empty_text_embed
+    return text_embed
+    
+def drop_class_condition(class_condition, class_drop_prob, im):
+    if class_drop_prob > 0:
+        class_drop_mask = torch.zeros(im.size(0), 1).uniform_(0, 1) > class_drop_prob
+        return class_condition * class_drop_mask
+    else:
+        return class_condition
+
 def get_text_representation(text, text_tokenizer, text_model, device, truncation=True, padding="max_length", max_length=77):
     token_output = text_tokenizer(
         text,
@@ -98,10 +118,44 @@ def train(args):
     model = Unet(im_channels=autoencoder_model_config['z_channels'], model_config=diffusion_config)
     model.train()
     
+    num_epochs = train_config["ldm_epochs"]
+    optimizer = torch.optim.Adam(model.parameters(), lr=train_config["ldm_lr"])
+    cirterion = torch.nn.MSELoss()
     
+    for epoch_idx in range(num_epochs):
+        losses = []
+        for data in tqdm(data_loader):
+            if condition_config is not None:
+                im, cond_input = data
+            else:
+                im = data
+            
+            if "class" in condition_types:
+                class_condition = torch.nn.functional.one_hot(
+                    cond_input["class"],
+                    condition_config["class_condition_config"]["num_classes"]
+                )
+                class_drop_prob = condition_config["class_condition_config"]["condition_drop_prob"]
+                
+                cond_input["class"] = drop_class_condition(class_condition, class_drop_prob, im)
+            if "text" in condition_types:
+                text_condition = get_text_representation(cond_input["text"], text_tokenizer, text_model, device)
+                text_drop_prob = condition_config["text_condition_config"]["cond_drop_prob"]
+                text_condition = drop_text_condition(text_condition, im, empty_text_embed, text_drop_prob)
+                cond_input["text"] = text_condition
+            if "image" in condition_types:
+                cond_input_image = cond_input["image"].to(device)
+                im_drop_prob = condition_config["image_condition_config"]["cond_drop_prob"]
+                cond_input["image"] = drop_image_condition(cond_input_image, im, im_drop_prob)
+                pass
     
-    
-    
+            noise = torch.randn_like(im)
+            T = torch.randint(0, diffusion_config["time_steps"], (im.size(0), ))
+            noisy_image = scheduler.add_noise(im, noise, T)
+            noise_pred = model(noisy_image, T, cond_input)
+            loss = cirterion(noise_pred, noise)
+            losses.append(loss.item())
+            loss.backward()
     
     
     pass
