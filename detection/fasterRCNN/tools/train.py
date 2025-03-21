@@ -4,6 +4,8 @@ import random
 import numpy as np
 from argparse import ArgumentParser
 
+from dataset.voc import VOCDataset
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train(args):
