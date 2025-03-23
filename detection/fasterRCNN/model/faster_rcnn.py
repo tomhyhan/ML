@@ -3,47 +3,67 @@ import torch
 import torchvision
 import torch.nn as nn
 
+
 def apply_regression_pred_to_anchors_or_proposals(box_transform_pred, anchors_or_proposals):
     # box_transform_pred.detach().reshape(-1, 1, 4)
     # (Batch_Size*H_feat*W_feat*Number of Anchors per location, 1, 4)
     # anchors: (H_feat * W_feat * num_anchors_per_location, 4)
-    
+
     # reshape box_trainform_pred to (size(0), -1, 4)
     box_transform_pred = box_transform_pred.reshape(
         box_transform_pred.size(0), -1, 4
     )
-    
-    # define center x, center y. [10] 
+
+    # define center x, center y. [10]
     # dx, dy, dw, dh -> [B*10, 1]
     w = anchors_or_proposals[:, 2] - anchors_or_proposals[:, 0]
     h = anchors_or_proposals[:, 3] - anchors_or_proposals[:, 1]
     center_x = anchors_or_proposals[:, 0] + w / 2
     center_y = anchors_or_proposals[:, 1] + h / 2
-    
-    dx = box_transform_pred[..., 0]    
-    dy = box_transform_pred[..., 1]    
-    dw = box_transform_pred[..., 2]    
-    dh = box_transform_pred[..., 3]    
+
+    dx = box_transform_pred[..., 0]
+    dy = box_transform_pred[..., 1]
+    dw = box_transform_pred[..., 2]
+    dh = box_transform_pred[..., 3]
     # clamp dw, dh with max=math.log(1000.0 / 16)
     # can scale up to exp(4.1)
     dw = torch.clamp(dw, max=math.log(1000.0 / 16))
     dh = torch.clamp(dh, max=math.log(1000.0 / 16))
-        
-    # define px, py, ph, pw 
+
+    # define px, py, ph, pw
     px = dx * w[:, None] + center_x[:, None]
     py = dy * h[:, None] + center_y[:, None]
     pw = torch.exp(dw) * w[:, None]
     ph = torch.exp(dh) * h[:, None]
-    
+
     # define p box using above
     pbox_x1 = px - 0.5 * pw
     pbox_y1 = py - 0.5 * ph
     pbox_x2 = px + 0.5 * pw
     pbox_y2 = py + 0.5 * ph
-    
+
     pbox = torch.stack([pbox_x1, pbox_y1, pbox_x2, pbox_y2], dim=2)
-    
+
     return pbox
+
+
+def clamp_boxes_to_image_boundary(boxes, image_shape):
+    H, W = image_shape.shape[-2:]
+
+    x1 = boxes[..., 0]
+    y1 = boxes[..., 1]
+    x2 = boxes[..., 2]
+    y2 = boxes[..., 3]
+
+    x1 = x1.clamp(min=0, max=W)
+    y1 = y1.clamp(min=0, max=H)
+    x2 = x2.clamp(min=0, max=W)
+    y2 = y2.clamp(min=0, max=H)
+
+    boxes = torch.stack([x1, y1, x2, y2], dim=-1)
+
+    return boxes
+
 
 class RegionProposalNetwork(nn.Module):
     def __init__(self, in_channels, scales, aspect_ratios, model_config):
@@ -125,44 +145,59 @@ class RegionProposalNetwork(nn.Module):
         return anchors
 
     def filter_proposals(self, proposals, cls_scores, image_shape):
-        # flatten cls score and apply sigmoid 
-        
+        # flatten cls score and apply sigmoid
+
         # take topk btw prenms_topk and length if cls scores
-        
-        # apply indices
+
+        # apply indices to cls scores and proposals
+
+        # clamp boxes to image boundary
+        # -> clamp_boxes_to_image_boundary
+
+        # filter small boxes based on size 16
+
+        # apply filtered indices to proposals and cls_scores
+
+        # apply nms to proposals
+
+        # sort keep indices by class and
+
+        # post nms topk filtering
+
+        # return proposals and cls_scores
         pass
-    
+
     def forward(self, image, feat, target=None):
         rpn_feat = nn.ReLU()(self.rpn_conv(feat))
         cls_scores = self.cls_layers(rpn_feat)
         box_transform_pred = self.bbox_reg_layer(rpn_feat)
-        
+
         anchors = self.generate_anchors(image, feat)
-        
+
         batch_size = cls_scores.size(0)
         num_anchors_per_location = cls_scores.size(1)
         H, W = feat.shape[-2:]
-        
+
         cls_scores = cls_scores.permute(0, 2, 3, 1)
         cls_scores = cls_scores.reshape(-1, 1)
-        
+
         box_transform_pred = box_transform_pred.reshape(
-            batch_size, num_anchors_per_location, 4, H, W    
-        ) 
+            batch_size, num_anchors_per_location, 4, H, W
+        )
         box_transform_pred = box_transform_pred.permute(
             0, 3, 4, 1, 2
         )
         box_transform_pred = box_transform_pred.reshape(-1, 4)
-        
+
         proposals = apply_regression_pred_to_anchors_or_proposals(
             box_transform_pred.detach().reshape(-1, 1, 4), anchors
         )
         proposals = proposals.reshape(proposals.size(0), 4)
         # prediction boxes by matching pred to anchors
-        
-        proposals, scores = self.filter_proposals(proposals, cls_scores.detach(), image.shape)
-        
-        
+
+        proposals, scores = self.filter_proposals(
+            proposals, cls_scores.detach(), image.shape)
+
 
 class FasterRCNN(nn.Module):
     def __init__(self, model_config, num_classes):
