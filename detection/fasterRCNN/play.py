@@ -33,14 +33,3 @@
 # anchors = (shifts.view(-1, 1, 4) + base_anchors.view(1, -1, 4))
 # print(base_anchors.shape)
 # print(anchors[0])
-
-import torch
-from torchvision.ops import nms
-
-boxes = torch.tensor([[0, 0, 10, 10], [1, 1, 11, 11], [
-                     2, 2, 12, 12]], dtype=torch.float32)
-scores = torch.tensor([0.9, 0.95, 0.8])
-indices = nms(boxes, scores, 0.5)
-# Should be sorted by scores: [1, 0, 2] (scores: 0.95, 0.9, 0.8)
-print(indices)
-print(scores[indices])  # Should be in descending order

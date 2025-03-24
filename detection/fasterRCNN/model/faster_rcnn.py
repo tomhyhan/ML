@@ -1,5 +1,6 @@
 import math
 import torch
+import torch.utils
 import torchvision
 import torch.nn as nn
 
@@ -146,26 +147,46 @@ class RegionProposalNetwork(nn.Module):
 
     def filter_proposals(self, proposals, cls_scores, image_shape):
         # flatten cls score and apply sigmoid
+        cls_scores = cls_scores.reshape(-1)
+        cls_scores = torch.sigmoid(cls_scores)
 
         # take topk btw prenms_topk and length if cls scores
+        _, topk_indices = torch.topk(cls_scores, min(
+            len(cls_scores, self.rpn_prenmns_topk)))
 
         # apply indices to cls scores and proposals
+        cls_scores = cls_scores[topk_indices]
+        proposals = proposals[topk_indices]
 
         # clamp boxes to image boundary
         # -> clamp_boxes_to_image_boundary
+        proposals = clamp_boxes_to_image_boundary(proposals, image_shape)
 
         # filter small boxes based on size 16
+        min_size = 16
+        w = proposals[..., 2] - proposals[..., 0]
+        h = proposals[..., 3] - proposals[..., 1]
+        keep = (w >= min_size) & (h >= min_size)
 
         # apply filtered indices to proposals and cls_scores
+        cls_scores = cls_scores(keep)
+        proposals = proposals(keep)
 
         # apply nms to proposals
+        topk_indices = torchvision.ops.nms(
+            proposals, cls_scores, self.rpn_nms_threshold)
 
         # sort keep indices by class and
+        _, sorted_indices = torch.sort(
+            cls_scores[topk_indices], descending=True)
+        topk_indices = topk_indices[sorted_indices]
 
         # post nms topk filtering
+        cls_scores = cls_scores[topk_indices]
+        proposals = proposals[topk_indices]
 
         # return proposals and cls_scores
-        pass
+        return proposals, cls_scores
 
     def forward(self, image, feat, target=None):
         rpn_feat = nn.ReLU()(self.rpn_conv(feat))
@@ -197,6 +218,18 @@ class RegionProposalNetwork(nn.Module):
 
         proposals, scores = self.filter_proposals(
             proposals, cls_scores.detach(), image.shape)
+
+        rpn_output = {
+            "proposals": proposals,
+            "scores": scores
+        }
+
+        if not self.training or target is None:
+            return rpn_output
+        else:
+            # so far we have prediction anchor boxes
+
+            pass
 
 
 class FasterRCNN(nn.Module):
