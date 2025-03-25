@@ -33,3 +33,35 @@
 # anchors = (shifts.view(-1, 1, 4) + base_anchors.view(1, -1, 4))
 # print(base_anchors.shape)
 # print(anchors[0])
+
+import torch
+
+# x = torch.rand(2, 3)
+# print(x)
+
+# _, t = x.max(dim=0)
+# b, _ = x.max(dim=1)
+
+# print(b)
+
+# print(torch.where(x == b[:, None]))
+# r = torch.where(x == b[:, None])[1]
+# print("t", t)
+# print(t[r])
+# best_match_gt_idx -> (num_anchors_in_image)
+
+# best_match_iou = [0.8, 0.7, 0.8]  # Highest IoU for each anchor
+# best_match_gt_idx = [0, 1, 0]
+
+iou_matrix = torch.tensor([[0.8, 0.2, 0.8],  # gt_box_0
+                           [0.3, 0.7, 0.4]])  # gt_box_1
+best_anchor_iou_for_gt = torch.tensor([0.8, 0.7])
+print("max", iou_matrix.max(dim=0)[1])
+gt_pred_pair_with_highest_iou = torch.where(
+    iou_matrix == best_anchor_iou_for_gt[:, None])
+# gt_pred_pair_with_highest_iou = ([0, 0, 1], [0, 2, 1])
+print(iou_matrix == best_anchor_iou_for_gt[:, None])
+print(best_anchor_iou_for_gt[:, None])
+print(gt_pred_pair_with_highest_iou)
+
+print(iou_matrix.max(dim=0)[1][gt_pred_pair_with_highest_iou[1]])

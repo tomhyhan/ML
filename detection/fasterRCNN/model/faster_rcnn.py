@@ -66,6 +66,27 @@ def clamp_boxes_to_image_boundary(boxes, image_shape):
     return boxes
 
 
+def get_iou(boxes1, boxes2):
+    # param sample: gt_boxes, anchors
+    # get area of each box
+    area1 = (boxes1[:, 2] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 1])
+    area2 = (boxes2[:, 2] - boxes2[:, 0]) * (boxes2[:, 3] - boxes2[:, 1])
+
+    # get x1, y1 x2 y2from box1 and box2
+    x1 = torch.max(boxes1[:, None, 0], boxes2[:, 0])
+    y1 = torch.max(boxes1[:, None, 1], boxes2[:, 1])
+    x2 = torch.min(boxes1[:, None, 2], boxes2[:, 2])
+    y2 = torch.min(boxes1[:, None, 3], boxes2[:, 3])
+
+    # compute intersection area and union
+    intersection_area = (x2 - x1).clamp(min=0) * (y2 - y1).clamp(min=0)
+    union = area1[:, None] + area2 - intersection_area
+
+    # compute iou and return
+    iou = intersection_area / union
+    return iou
+
+
 class RegionProposalNetwork(nn.Module):
     def __init__(self, in_channels, scales, aspect_ratios, model_config):
         super().__init__()
@@ -187,6 +208,10 @@ class RegionProposalNetwork(nn.Module):
 
         # return proposals and cls_scores
         return proposals, cls_scores
+
+    def assign_targets_to_anchors(self, anchors, gt_boxes):
+
+        pass
 
     def forward(self, image, feat, target=None):
         rpn_feat = nn.ReLU()(self.rpn_conv(feat))
