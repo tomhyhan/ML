@@ -65,3 +65,9 @@ print(best_anchor_iou_for_gt[:, None])
 print(gt_pred_pair_with_highest_iou)
 
 print(iou_matrix.max(dim=0)[1][gt_pred_pair_with_highest_iou[1]])
+g = gt_pred_pair_with_highest_iou[1]
+b = iou_matrix.max(dim=0)[1]
+
+print("bg", b[g])
+b[g] = g
+print(b)
