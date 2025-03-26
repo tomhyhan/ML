@@ -86,6 +86,46 @@ def get_iou(boxes1, boxes2):
     iou = intersection_area / union
     return iou
 
+def boxes_to_transformation_targets(ground_truth_boxes, anchors_or_proposals):
+    w = anchors_or_proposals[:, 2] - anchors_or_proposals[:, 0]
+    h = anchors_or_proposals[:, 3] - anchors_or_proposals[:, 1]
+    xc = anchors_or_proposals[:, 0] + 0.5 * w
+    yc = anchors_or_proposals[:, 0] + 0.5 * h
+    
+    gw = ground_truth_boxes[:, 2] - ground_truth_boxes[:, 0]
+    gh = ground_truth_boxes[:, 3] - ground_truth_boxes[:, 1]
+    gxc = ground_truth_boxes[:, 0] + 0.5 * w 
+    gyc = ground_truth_boxes[:, 1] + 0.5 * h 
+    
+    tx = (gxc - xc) / w
+    ty = (gyc - yc) / h
+    tw = torch.log(gw / w)
+    th = torch.log(gh / h)
+    regression_targets = torch.stack([tx, ty, tw, th], dim=1)
+    return regression_targets
+
+def sample_positive_negative(labels, positive_count, total_count):
+    # get positive and negative label indices
+    positive = torch.where(labels > 0)[0]
+    negative = torch.where(labels == 0)[0]
+     
+    # get number of positive and negative
+    num_pos = torch.min(positive_count, positive.numel())
+    num_neg = total_count - num_pos
+    num_neg = torch.min(num_neg, negative.numel())
+    
+    # perm and resize by number of positive and negatives
+    pos_idx = torch.randperm(positive.numel(), device=positive.device)[:num_pos]
+    neg_idx = torch.randperm(negative.numel(), device=negative.device)[:num_neg]
+    
+    # create mask with label and apply the pos and neg indices
+    perm_positive_idxs = torch.zeros_like(labels, dtype=torch.bool)
+    perm_negative_idxs = torch.zeros_like(labels, dtype=torch.bool)
+    
+    perm_positive_idxs[pos_idx] = True
+    perm_negative_idxs[neg_idx] = True
+    
+    return perm_positive_idxs, perm_negative_idxs
 
 class RegionProposalNetwork(nn.Module):
     def __init__(self, in_channels, scales, aspect_ratios, model_config):
@@ -173,7 +213,8 @@ class RegionProposalNetwork(nn.Module):
 
         # take topk btw prenms_topk and length if cls scores
         _, topk_indices = torch.topk(cls_scores, min(
-            len(cls_scores, self.rpn_prenmns_topk)))
+            len(cls_scores, self.rpn_prenmns_topk))
+        )
 
         # apply indices to cls scores and proposals
         cls_scores = cls_scores[topk_indices]
@@ -210,8 +251,50 @@ class RegionProposalNetwork(nn.Module):
         return proposals, cls_scores
 
     def assign_targets_to_anchors(self, anchors, gt_boxes):
+        # get_iou from gt_boxes and anchor boxes
+        iou_mattrix = get_iou(gt_boxes, anchors)
+        
+        # for each anchor box, assign gt box with max iou
+        best_match_gt, best_match_gt_idx = iou_mattrix.max(dim=0)
+        
+        # create copy of best_match_gt_idx to best_match_gt_idx_pre_thresholding
+        best_match_gt_idx_pre_thresholding = best_match_gt_idx.copy()
+        
+        # assign -1 to background and -2 to neutral
+        bg = best_match_gt < self.low_iou_threshold
+        best_match_gt_idx[bg] = -1
+        
+        neutral = self.low_iou_threshold <= best_match_gt < self.high_iou_threshold
+        best_match_gt_idx[neutral] = -2
+        
+        # for each gt box assign anchor box in max iou
+        best_anchor_iou_for_gt, _ = iou_mattrix.max(dim=1)
+        
+        # we don't want to overlook anchors boxes with same max iou assign to a single gt box
+        # so we compute indices of anchor boxes that have max iou to a single gt box without 
+        # considering the threshold
+        _, gt_pred_pair_with_highest_iou = torch.where(iou_mattrix == best_anchor_iou_for_gt[:, None])
+        
+        # restore max iou assign to gt_boxes best_math_gt_idx from previous
+        best_match_gt_idx[gt_pred_pair_with_highest_iou] = best_match_gt_idx_pre_thresholding[gt_pred_pair_with_highest_iou]
+        
+        # define matched_gt_boxes from best_match_gt_idx while clamp to 0
+        matched_gt_boxes = gt_boxes[best_match_gt_idx.clamp(min=0)]
 
-        pass
+        # create labels, fg as 1 and cast to float 32
+        labels = best_match_gt_idx >= 0
+        labels = labels.to(dtype = torch.float32)
+        
+        # set bg as 0
+        bg = best_match_gt_idx == -1
+        labels[bg] = 0.0
+        
+        # set ignored as -1
+        ignored = best_match_gt_idx == -2
+        labels[ignored] = -1.0
+        
+        # return labels and match gt boxes
+        return labels, matched_gt_boxes
 
     def forward(self, image, feat, target=None):
         rpn_feat = nn.ReLU()(self.rpn_conv(feat))
@@ -253,10 +336,54 @@ class RegionProposalNetwork(nn.Module):
             return rpn_output
         else:
             # so far we have prediction anchor boxes
+            labels_for_anchors, matched_gt_boxes_for_anchors = self.assign_targets_to_anchors(
+                anchors, target["bboxes"][0]
+            )
+            
+            regression_targets = boxes_to_transformation_targets(
+                matched_gt_boxes_for_anchors, anchors
+            )
+            
+            sampled_neg_idx_mask, sample_pos_idx_mask = sample_positive_negative(
+                labels_for_anchors,
+                positive_count=self.rpn_pos_count,
+                total_count = self.rpn_batch_size
+            )
 
-            pass
-
-
+            sampled_idx = torch.where(sampled_neg_idx_mask | sample_pos_idx_mask)[0]
+            
+            localization_loss = nn.functional.smooth_l1_loss(
+                box_transform_pred[sample_pos_idx_mask],
+                regression_targets[sample_pos_idx_mask],
+                beta= 1/9,
+                reduction="sum"
+            ) / sampled_idx.numel()
+            
+            cls_loss = nn.functional.binary_cross_entropy_with_logits(
+                cls_scores[sampled_idx].flatten(),
+                labels_for_anchors[sampled_idx].flatten()
+            )
+            
+            rpn_output["rpn_classification_loss"] = cls_loss
+            rpn_output["rpn_localization_loss"] = localization_loss
+            return rpn_output
+        
+class ROIHead(nn.Module):
+    def __init__(self, model_config, num_classes, in_channels):
+        super().__init__()
+        self.num_classes = num_classes
+        self.roi_batch_size = model_config["roi_batch_size"]
+        self.roi_pos_count = int(model_config["roi_pos_fraction"] * self.roi_batch_size)
+        self.iou_threshold = model_config["iou_threshold"]
+        self.low_bg_iou = model_config["roi_low_bg_iou"]
+        self.nms_threshold = model_config["roi_nms_threshold"]
+        self.topK_detections = model_config["roi_topk_detections"]
+        self.low_score_threshold = model_config["roi_score_threshold"]
+        self.pool_size = model_config["roi_poo_size"]
+        self.fc_inner_dim = model_config["fc_inner_dim"]
+        
+        # self.fc6 = nn.
+        
 class FasterRCNN(nn.Module):
     def __init__(self, model_config, num_classes):
         super().__init__()
@@ -268,6 +395,10 @@ class FasterRCNN(nn.Module):
             aspect_ratios=model_config["aspect_ratios"],
             model_config=model_config
         )
-
+        self.roi_head = ROIHead(
+            model_config,
+            num_classes,
+            in_channels=model_config["backbone_out_channels"]
+        )
     def forward(self):
         pass
