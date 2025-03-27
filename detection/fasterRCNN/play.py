@@ -83,6 +83,8 @@ import torch
 
 # print(a)
 
-x = torch.tensor([0,True,True,0])
+x = torch.arange(3)
+a = torch.tensor([[0.9, 0.1, 0.2], [0.4,0.5, 0.2]])
+print(torch.nn.functional.softmax(a, dim=-1))
 
-print( torch.where(x ))
+print(x.view(1,-1).expand_as(torch.nn.functional.softmax(a, dim=-1)))
