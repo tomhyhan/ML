@@ -455,7 +455,7 @@ class ROIHead(nn.Module):
             # get box regression targets
             regression_targets = boxes_to_transformation_targets(
                 matched_gt_boxes_for_proposals, proposals)
-            
+
         # get scale from original image to feat
         feat_shape = feat.shape[-2:]
         scales = []
@@ -465,28 +465,31 @@ class ROIHead(nn.Module):
             scales.append(scale)
 
         # apply roi pooling for proposals
-        proposal_roi_pool_feats = torchvision.ops.roi_pool(feat, [proposals], self.pool_size, scales[0])
+        proposal_roi_pool_feats = torchvision.ops.roi_pool(
+            feat, [proposals], self.pool_size, scales[0])
         proposal_roi_pool_feats = proposal_roi_pool_feats.flatten(start_dim=1)
         box_fc_6 = nn.functional.relu(self.fc6(proposal_roi_pool_feats))
         box_fc_7 = nn.functional.relu(self.fc7(box_fc_6))
-        
+
         cls_scores = self.cls_layer(box_fc_7)
         box_transform_pred = self.bbox_reg_layer(box_fc_7)
-        
+
         # reshape box transform pred
         num_proposals, num_classes = cls_scores.shape
-        box_transform_pred = box_transform_pred.reshape(num_proposals, num_classes, 4)
-        
+        box_transform_pred = box_transform_pred.reshape(
+            num_proposals, num_classes, 4)
+
         frcnn_output = {}
         if self.training or target is not None:
             # get classification loss
-            classification_loss = nn.functional.cross_entropy(cls_scores, labels)
-        
+            classification_loss = nn.functional.cross_entropy(
+                cls_scores, labels)
+
             # get foreground idxs and labels
             fg_idxs = labels > 0
             fg_box_transform_pred = box_transform_pred[fg_idxs]
             fg_labels = labels[fg_idxs]
-                                    
+
             # compute localization loss
             localization_loss = nn.functional.smooth_l1_loss(
                 fg_box_transform_pred[fg_idxs, fg_labels],
@@ -494,47 +497,49 @@ class ROIHead(nn.Module):
                 beta=1/9,
                 reduction="sum"
             )
-            
+
             localization_loss = localization_loss / labels.numel()
-            frcnn_output["frcnn_classification_loss"]  = classification_loss
-            frcnn_output["frcnn_localization_loss"] = localization_loss    
-        
+            frcnn_output["frcnn_classification_loss"] = classification_loss
+            frcnn_output["frcnn_localization_loss"] = localization_loss
+
         if self.training:
             return frcnn_output
         else:
             device = cls_scores.device
             # apply transformation pred to proposals
-            pred_boxes = apply_regression_pred_to_anchors_or_proposals(box_transform_pred, proposals)
+            pred_boxes = apply_regression_pred_to_anchors_or_proposals(
+                box_transform_pred, proposals)
             pred_scores = nn.functional.softmax(cls_scores, dim=-1)
-                        
+
             # clamp box to image boundary
             pred_boxes = clamp_boxes_to_image_boundary(pred_boxes, image_shape)
-            
+
             # create labels for each prediction
             pred_labels = torch.arange(num_classes, device=device)
             pred_labels = pred_labels.view(-1, 1).expand_as(pred_scores)
-            
+
             pred_boxes = pred_boxes[:, 1:]
             pred_scores = pred_scores[:, 1:]
             pred_labels = pred_labels[:, 1:]
-            
+
             pred_boxes = pred_boxes.reshape(-1, 4)
             pred_scores = pred_scores.reshape(-1)
             pred_labels = pred_labels.reshape(-1)
-                        
-            pred_boxes, pred_scores, pred_labels = self.filter_predictions(pred_boxes, pred_scores, pred_labels)
+
+            pred_boxes, pred_scores, pred_labels = self.filter_predictions(
+                pred_boxes, pred_scores, pred_labels)
             frcnn_output["boxes"] = pred_boxes
             frcnn_output["scores"] = pred_scores
             frcnn_output["labels"] = pred_labels
             return frcnn_output
-        
+
     def filter_predictions(self, pred_boxes, pred_labels, pred_scores):
         # filter low scoring boxes
         keep = pred_scores < self.low_score_threshold
         pred_boxes = pred_boxes[keep]
         pred_labels = pred_labels[keep]
         pred_scores = pred_scores[keep]
-        
+
         # remove small size boxes
         min_size = 16
         ws = pred_boxes[:, 2] - pred_boxes[:, 0]
@@ -543,7 +548,7 @@ class ROIHead(nn.Module):
         pred_boxes = pred_boxes[keep]
         pred_labels = pred_labels[keep]
         pred_scores = pred_scores[keep]
-        
+
         # nms for each class
         keep_mask = torch.zeros_like(pred_scores, dtype=torch.bool)
         for cls in range(torch.unique(pred_labels)):
@@ -553,13 +558,15 @@ class ROIHead(nn.Module):
             )
             keep_mask[cls_keep[curr_keep_indices]] = True
         keep_indices = torch.where(keep_mask)[0]
-        post_nms_keep_indicies = keep_indices[pred_scores[keep_indices].sort(descending=True)[1]]
+        post_nms_keep_indicies = keep_indices[pred_scores[keep_indices].sort(descending=True)[
+            1]]
         keep = post_nms_keep_indicies[:self.topK_detections]
         pred_boxes = pred_boxes[keep]
         pred_labels = pred_labels[keep]
         pred_scores = pred_scores[keep]
         return pred_boxes, pred_labels, pred_scores
-    
+
+
 class FasterRCNN(nn.Module):
     def __init__(self, model_config, num_classes):
         super().__init__()
@@ -579,8 +586,56 @@ class FasterRCNN(nn.Module):
         for layer in self.backbone[:10]:
             for p in layer.parameters():
                 p.requires_grad = False
-                
-        self.image_mean = []
 
-    def forward(self):
-        pass
+        self.image_mean = [0.485, 0.456, 0.406]
+        self.image_std = [0.229, 0.224, 0.225]
+        self.min_size = model_config['min_im_size']
+        self.max_size = model_config['max_im_size']
+
+    def normalize_resize_image_and_boxes(self, image, bboxes):
+        # define dtype and device for image
+        dtype, device = image.dtype, image.device
+
+        # normalize the image
+        mean = torch.as_tensor(self.image_mean, dtype=dtype, device=device)
+        std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
+
+        image = (image - mean) / std
+
+        # Scale image
+        h, w = image.shape[-2:]
+        im_shape = torch.tensor(image.shape[-2:])
+        min_size = torch.min(im_shape).to(dtype=torch.float32)
+        max_size = torch.max(im_shape).to(dtype=torch.float32)
+        scale = torch.min(min_size / self.min_size, max_size / self.max_size)
+        scale = scale.item()
+
+        image = nn.functional.interpolate(
+            image,
+            size=None,
+            scale_factor=scale,
+            recompute_scale_factor=True,
+            align_corners=False,
+            mode='bilinear'
+        )
+
+        if bboxes is not None:
+            scale = [
+                torch.tensor(s, dtype=torch.float32, device=bboxes.device)
+                / torch.tensor(os, dtype=torch.float32, device=bboxes.device)
+                for s, os in zip(image.shape[-2:], (h, w))
+            ]
+
+            h_ratio, w_ratio = scale
+            x1, y1, x2, y2 = bboxes.unbind(2)
+            x1 = x1
+            pass
+
+    def forward(self, image, target=None):
+        old_shape = image.shape[-2:]
+        if self.training:
+            image, bboxes = self.normalize_resize_image_and_boxes(
+                image, target["bboxes"])
+            target["bboxes"] = bboxes
+        else:
+            image, _ = self.normalize_resize_image_and_boxes(image, None)
