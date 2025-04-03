@@ -150,70 +150,70 @@ class VOCDataset(Dataset):
         bboxes = torch.as_tensor(transformed_info['bboxes'])
         labels = torch.as_tensor(transformed_info['labels'])
         difficult = torch.as_tensor(difficult)
-        
-        # conver image to tensor and normalize
-        # r 0.485 / 0.229 
-        # g 0.456 / 0.224
-        # b 0.406 / 0.225
-        im_tensor = torch.from_numpy(im / 255.).permute(1,2,0).float()
-        r = (im_tensor[0].unsqueeze(0) - 0.485) / 0.229
-        g = (im_tensor[1].unsqueeze(0) - 0.456) / 0.224
-        b = (im_tensor[2].unsqueeze(0) - 0.406) / 0.225
-        im_tensor = torch.cat([r,g,b], dim=0)
+
+        # Convert image to tensor and normalize
+        im_tensor = torch.from_numpy(im / 255.).permute((2, 0, 1)).float()
+        im_tensor_channel_0 = (torch.unsqueeze(im_tensor[0], 0) - 0.485) / 0.229
+        im_tensor_channel_1 = (torch.unsqueeze(im_tensor[1], 0) - 0.456) / 0.224
+        im_tensor_channel_2 = (torch.unsqueeze(im_tensor[2], 0) - 0.406) / 0.225
+        im_tensor = torch.cat((im_tensor_channel_0,
+                               im_tensor_channel_1,
+                               im_tensor_channel_2), 0)
         bboxes_tensor = torch.as_tensor(bboxes)
         labels_tensor = torch.as_tensor(labels)
-        
-        # create target for YOLO with target dim
-        target_dim = self.B * 5 + self.C
-        yolo_target = torch.zeros(self.S, self.S, target_dim)
-        
-        # Width and Height of each grid cell H // S
-        H, W = im_tensor.shape[-2:]
-        cell_pixels = H / self.S
-        
-        # if there exist boxes
+
+        # Build Target for Yolo
+        target_dim = 5 * self.B + self.C
+        h, w = im.shape[:2]
+        yolo_targets = torch.zeros(self.S, self.S, target_dim)
+
+        # Height and width of grid cells is H // S
+        cell_pixels = h // self.S
+
         if len(bboxes) > 0:
-            # convert x1y1x2y2 to xywh
-            w = bboxes_tensor[:, 2] - bboxes_tensor[:, 0]
-            h = bboxes_tensor[:, 3] - bboxes_tensor[:, 1]
-            xc = bboxes_tensor[:,0] + 0.5 * w
-            yc = bboxes_tensor[:,1] + 0.5 * h
-            
-            # get top-left corner cell i, j from xc yc
-            box_i = torch.floor(xc / cell_pixels)
-            box_j = torch.floor(yc / cell_pixels)
-            
-            # xc, yc offset from cell top-left
-            xc_offset = (xc - box_i*cell_pixels) / cell_pixels
-            yc_offset = (yc - box_j*cell_pixels) / cell_pixels
-            
-            # normalize box w and h
-            box_w_label = w / W
-            bex_h_label = h / H
-            
-            # fill in yolo targets from gt box we found
-            for idx in range(len(bboxes)):
-                for i in range(self.B):
-                    s = 5 * i
-                    yolo_target[box_j[idx], box_i[idx], s] = xc_offset[idx]
-                    yolo_target[box_j[idx], box_i[idx], s+1] = yc_offset[idx]
-                    yolo_target[box_j[idx], box_i[idx], s+2] = box_w_label[idx].sqrt()
-                    yolo_target[box_j[idx], box_i[idx], s+3] = bex_h_label[idx].sqrt()
-                    yolo_target[box_j[idx], box_i[idx], s+4] = 1.0
-                label = int(labels[idx])
-                classes = torch.zeros(self.C)
-                classes[label] = 1
-                yolo_target[box_j[idx], box_i[idx], self.B*5 + 10] = classes
-        
+            # Convert x1y1x2y2 to xywh format
+            box_widths = bboxes_tensor[:, 2] - bboxes_tensor[:, 0]
+            box_heights = bboxes_tensor[:, 3] - bboxes_tensor[:, 1]
+            box_center_x = bboxes_tensor[:, 0] + 0.5 * box_widths
+            box_center_y = bboxes_tensor[:, 1] + 0.5 * box_heights
+
+            # Get cell i,j from xc, yc
+            box_i = torch.floor(box_center_x / cell_pixels).long()
+            box_j = torch.floor(box_center_y / cell_pixels).long()
+
+            # xc offset from cell topleft
+            box_xc_cell_offset = (box_center_x - box_i*cell_pixels) / cell_pixels
+            box_yc_cell_offset = (box_center_y - box_j*cell_pixels) / cell_pixels
+
+            # w, h targets normalized to 0-1
+            box_w_label = box_widths / w
+            box_h_label = box_heights / h
+
+            # Update the target array for all bboxes
+            for idx, b in enumerate(range(bboxes_tensor.size(0))):
+                # Make target of the exact same shape as prediction
+                for k in range(self.B):
+                    s = 5 * k
+                    # target_ij = [xc_offset,yc_offset,sqrt(w),sqrt(h), conf, cls_label]
+                    yolo_targets[box_j[idx], box_i[idx], s] = box_xc_cell_offset[idx]
+                    yolo_targets[box_j[idx], box_i[idx], s+1] = box_yc_cell_offset[idx]
+                    yolo_targets[box_j[idx], box_i[idx], s+2] = box_w_label[idx].sqrt()
+                    yolo_targets[box_j[idx], box_i[idx], s+3] = box_h_label[idx].sqrt()
+                    yolo_targets[box_j[idx], box_i[idx], s+4] = 1.0
+                label = int(labels[b])
+                cls_target = torch.zeros((self.C,))
+                cls_target[label] = 1.
+                yolo_targets[box_j[idx], box_i[idx], 5 * self.B:] = cls_target
+        # For training, we use yolo_targets(xoffset, yoffset, sqrt(w), sqrt(h))
+        # For evaluation we use bboxes_tensor (x1, y1, x2, y2)
+        # Below we normalize bboxes tensor to be between 0-1
+        # as thats what evaluation script expects so (x1/w, y1/h, x2/w, y2/h)
         if len(bboxes) > 0:
-            bboxes_tensor /= torch.tensor([W,H,W,H]).expand_as(bboxes_tensor)
-            
+            bboxes_tensor /= torch.Tensor([[w, h, w, h]]).expand_as(bboxes_tensor)
         targets = {
-            "bboxes": bboxes_tensor,
-            "labels": labels_tensor,
-            "yolo_targets": yolo_target,
-            "difficult": difficult
-        }      
-        
-        return im_tensor, targets, im_info["filename"]
-            
+            'bboxes': bboxes_tensor,
+            'labels': labels_tensor,
+            'yolo_targets': yolo_targets,
+            'difficult': difficult,
+        }
+        return im_tensor, targets, im_info['filename']

@@ -1,5 +1,8 @@
 import torch
 
-x = torch.rand(3, 7, 7)
+boxes1 = torch.rand(5, 4)
 
-print(x[0].unsqueeze(0).shape)
+area1 = (boxes1[..., 2] - boxes1[..., 0]) * (boxes1[..., 3] - boxes1[..., 1])
+
+
+print(area1.shape)
