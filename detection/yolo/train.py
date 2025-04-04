@@ -13,6 +13,8 @@ from loss.yolov1_loss import YOLOV1Lloss
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
+# x_mse shape
 def collate_fn(data):
     return list(zip(*data))
 

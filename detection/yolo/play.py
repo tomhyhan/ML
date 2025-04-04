@@ -1,8 +1,13 @@
 import torch
 
-boxes1 = torch.rand(5, 4)
+x = torch.tensor([0,1])
 
-area1 = (boxes1[..., 2] - boxes1[..., 0]) * (boxes1[..., 3] - boxes1[..., 1])
+y = torch.tensor([[5],[10]])
 
+print(x.shape, y.shape)
+print(x * y)
 
-print(area1.shape)
+mask = torch.tensor([1, 0])        # Shape: (2,)
+errors = torch.tensor([[0.25], [0.16]])  # Shape: (2, 1)
+result = mask * errors
+print(result)
