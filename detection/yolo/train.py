@@ -9,10 +9,9 @@ from torch.utils.data import DataLoader
 
 from dataset.voc import VOCDataset
 from models.yolo import YOLOV1
-from loss.yolov1_loss import YOLOV1Lloss
+from loss.yolov1_loss import YOLOV1Loss
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 # x_mse shape
 def collate_fn(data):
@@ -73,7 +72,7 @@ def train(args):
         optimizer, train_config["lr_steps"], gamma=0.5
     )
     
-    criterion = YOLOV1Lloss()
+    criterion = YOLOV1Loss()
     
     acc_steps = train_config["acc_steps"]
     num_epochs = train_config["num_epochs"]
@@ -87,6 +86,26 @@ def train(args):
             im = torch.cat([im.unsqueeze(0).float().to(device) for im in ims], dim=0)
             pred = yolo(im)
             loss = criterion(pred, yolo_targets, use_sigmoid=model_config["use_sigmoid"])
+            loss = loss / acc_steps
+            loss.backward()
+            losses.append(loss.item())
+            if (idx + 1) % acc_steps:
+                optimizer.step()
+                optimizer.zero_grad()
+            if steps % train_config["log_steps"] == 0:
+                print(f"Loss : {np.mean(losses):.4f}")
+            if torch.isnan(loss):
+                print("loss is becoming nan. Exiting")
+                exit(0)
+            steps += 1
+        print(f"Finished epoch {epoch_idx}")
+        optimizer.step()
+        optimizer.zero_grad()
+        scheduler.step()
+        ckpt_path = os.path.join(train_config["task_name"], train_config["ckpt_name"])
+        torch.save(yolo.state_dict(), ckpt_path)
+        
+    print("Done training")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Arguments for training YOLOv1")
